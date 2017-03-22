@@ -8,10 +8,12 @@ project(ARC)
 
 #include dictornary will include all the headers
 include_directories(include)
+include_directories(include/TSBK07)
 
 #src dictonary will include all source files. the GLOB command will add all files off 
 #the type .cpp
 file(GLOB SOURCES "src/*.cpp")
+file(GLOB CSCOURCES "src/TSBK07/*.c")
 
 #Find external packeges
 find_package(GLUT REQUIRED)
@@ -30,6 +32,6 @@ if(NOT OPENGL_FOUND)
 endif(NOT OPENGL_FOUND)
 
 #creates a exe file
-add_executable(ARC ${SOURCES})
+add_executable(ARC ${SOURCES} ${CSOURCES})
 
 target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} )
