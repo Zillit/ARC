@@ -54,6 +54,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+#build files
+/build/
+
 ### C++ ###
 # Prerequisites
 
@@ -105,6 +108,7 @@ tramp
 # eshell files
 /eshell/history
 /eshell/lastdir
+
 
 # elpa packages
 /elpa/
