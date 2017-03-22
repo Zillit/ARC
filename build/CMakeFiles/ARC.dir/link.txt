@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/ARC.dir/src/main.cpp.o CMakeFiles/ARC.dir/src/test.cpp.o  -o ARC -rdynamic -lGLU -lGL -lglut -lXmu -lXi 

@@ -1,0 +1,3 @@
+/home/chros/ARC/build/CMakeFiles/edit_cache.dir
+/home/chros/ARC/build/CMakeFiles/rebuild_cache.dir
+/home/chros/ARC/build/CMakeFiles/ARC.dir

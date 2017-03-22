@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/test.h
+
+/home/chros/ARC/src/main.cpp
+iostream
+-
+test.h
+/home/chros/ARC/src/test.h
+
+/home/chros/ARC/src/test.cpp
+test.h
+/home/chros/ARC/src/test.h
+iostream
+-
+
