@@ -13,3 +13,4 @@ int Test::test()
     cout << "Number of test calls: " << number_of_calls_ << endl;
     return number_of_calls_;
 }
+
