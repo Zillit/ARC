@@ -1,4 +1,4 @@
-#include <iostream>
+/*#include <iostream>
 #include <vector>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -62,7 +62,7 @@ vector<int> detection_of_green(Mat camera_img ,int cols_to_measure)
 return pixel_height_to_with;
 }
 
-/*
+
 int main()
 {
     VideoCapture cap(0); //capture the video from web cam
