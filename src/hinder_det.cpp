@@ -2,43 +2,29 @@
 #include <vector>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-// /*
-// int main()
-// {
-//     VideoCapture cap(0); //capture the video from web cam
-//       if ( !cap.isOpened() )  // if not success, exit program
-//       {
-//         cout << "Cannot open the web cam" << endl;
-//         return -1;
-//         }
 
-//     while (true)
-//        {
-//           Mat imgOriginal;
+using namespace std;
+using namespace cv; 
 
-//           bool bSuccess = cap.read(imgOriginal); // read a new frame from video
+vector<int> detection_of_green(Mat camera_img, int cols_to_measure)
+{
 
-//             if (!bSuccess) //if not success, break loop
-//             {
-//                 cout << "Cannot read a frame from video stream" << endl;
-//                 break;
-//             }
+    int pixel_height = camera_img.rows;
+    int pixel_width = camera_img.cols; 
 
-//             imshow("Original", imgOriginal);
-//             waitKey(30);
+    int width_between_measure{pixel_width/(cols_to_measure+1)};
+    vector<int> pixel_height_to_with (cols_to_measure);
 
+    int iLowH = 38;
+    int iHighH = 72;
 
-//         vector<int> a = detection_of_green(imgOriginal, 15);
+    int iLowS = 50; 
+    int iHighS = 255;
 
+    int iLowV = 50;
+    int iHighV = 255;
 
-//         for(int i{}; i < 15; ++i)
-//         {
-//             if (a[i] == 0) return -1;
-//             cout << a[i] << " ";
-//         }
-//             cout << endl;
-
-//        }
+    Mat imgHSV;
 
     cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
