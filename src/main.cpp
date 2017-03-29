@@ -16,6 +16,7 @@
 #include "LoadTGA.h"
 #include "test.h"
 #include "defines.h"
+#include "spi.h"
 
 
 using namespace std;

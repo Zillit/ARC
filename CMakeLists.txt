@@ -67,8 +67,8 @@ add_definitions(${glm_DEFINITIONS})
 if(NOT glm_FOUND)
     message(ERROR " GLM not found!")
 endif(NOT glm_FOUND)
-find_package( OpenCV REQUIRED )
 
+find_package( OpenCV )
 
 
 #creates a exe file

@@ -9,10 +9,13 @@ struct SpiDevice
 void SpiCom::readAndWrite(int device, char* data, unsigned int length)
 {
     cout << "test" << endl;
+    slaveFeedback(0x00);
+    slaveFeedback(0x01);
+    slaveFeedback(0x02);
 }
 int SpiCom::slaveFeedback(unsigned char command)
 {
-    switch(command)
+    switch(command) {
     case 0x00 : 
                 cout << "No return from device" << endl;
                 return -1;
@@ -23,5 +26,7 @@ int SpiCom::slaveFeedback(unsigned char command)
     default :
                 cout << "Unknown command" << endl;
                 return -1;
+    }
+    return 0;
 
 }
