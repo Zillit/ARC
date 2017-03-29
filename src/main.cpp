@@ -20,10 +20,17 @@
 
 using namespace std;
 
+
+
+
+
 int main(int argc, char *argv[])
 {
-    graphicsInit(argc, argv);
-    glutMainLoop();
+    SpiCom* spi0 = new SpiCom;
+char* test=NULL;
+    spi0->readAndWrite(0,test, 5);
+    // graphicsInit(argc, argv);
+    // glutMainLoop();
     // glutTimerFunc(10,&timer,0);
     return 0;
 }
