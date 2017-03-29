@@ -10,7 +10,7 @@
 #include <thread>
 #include <chrono>
 
-#include "graphics.h"
+//#include "graphics.h"
 #include "VectorUtils3.h"
 #include "loadobj.h"
 #include "LoadTGA.h"
@@ -19,9 +19,6 @@
 
 
 using namespace std;
-
-
-
 
 
 int main(int argc, char *argv[])
