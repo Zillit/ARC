@@ -28,11 +28,13 @@ using namespace cv;
 
 int main(int argc, char *argv[])
 {
-    /*
+    
     SpiCom* spi0 = new SpiCom;
 char* test=NULL;
     spi0->readAndWrite(0,test, 5);
-*/
+
+
+/* Camera test
 
     int measured_cols{5};
     VideoCapture cap(0); //capture the video from web cam
@@ -76,7 +78,7 @@ char* test=NULL;
 
 
     }
-
+*/
 
     // graphicsInit(argc, argv);
     // glutMainLoop();
