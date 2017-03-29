@@ -68,8 +68,10 @@ if(NOT glm_FOUND)
     message(ERROR " GLM not found!")
 endif(NOT glm_FOUND)
 
+
+
 #creates a exe file
 add_executable(ARC ${SOURCES} ${CSOURCES})
 target_compile_features(ARC PRIVATE cxx_range_for)
 
-target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY})
+target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY} )
