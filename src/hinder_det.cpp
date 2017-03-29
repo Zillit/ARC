@@ -1,13 +1,14 @@
-/*#include <iostream>
+#include <iostream>
 #include <vector>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-using namespace cv;
 using namespace std;
+using namespace cv; 
 
-vector<int> detection_of_green(Mat camera_img ,int cols_to_measure)
+vector<int> detection_of_green(Mat camera_img, int cols_to_measure)
 {
+
     int pixel_height = camera_img.rows;
     int pixel_width = camera_img.cols; 
 
@@ -23,9 +24,7 @@ vector<int> detection_of_green(Mat camera_img ,int cols_to_measure)
     int iLowV = 50;
     int iHighV = 255;
 
-
     Mat imgHSV;
-
 
     cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
@@ -62,7 +61,13 @@ vector<int> detection_of_green(Mat camera_img ,int cols_to_measure)
 return pixel_height_to_with;
 }
 
+int vertical_degre(Mat imgOriginal, int n_pixels) 
+{
+    int pixel_height{imgOriginal.rows};
+    return 62/pixel_height*n_pixels;
+}
 
+/*
 int main()
 {
     VideoCapture cap(0); //capture the video from web cam
@@ -95,7 +100,7 @@ int main()
         for(int i{}; i < 15; ++i)
         {
             if (a[i] == 0) return -1;
-            cout << a[i] << " ";
+            cout << vertical_degre(imgOriginal, a[i]) << " ";
         }
             cout << endl;
 
