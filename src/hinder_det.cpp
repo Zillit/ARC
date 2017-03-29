@@ -1,7 +1,9 @@
-#include <iostream>
-#include <vector>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+//#include <iostream>
+//#include <vector>
+//#include "opencv2/highgui/highgui.hpp"
+//#include "opencv2/imgproc/imgproc.hpp"
+
+#include "hinder_det.h"
 
 using namespace std;
 using namespace cv; 
@@ -12,7 +14,7 @@ vector<int> detection_of_green(Mat camera_img, int cols_to_measure)
     int pixel_height = camera_img.rows;
     int pixel_width = camera_img.cols; 
 
-    int width_between_measure{pixel_width/(cols_to_measure+1)};
+    int width_between_measure{pixel_width / (cols_to_measure + 1)};
     vector<int> pixel_height_to_with (cols_to_measure);
 
     int iLowH = 38;
@@ -62,10 +64,18 @@ return pixel_height_to_with;
 }
 
 int vertical_degre(Mat imgOriginal, int n_pixels) 
-{
+{  
     int pixel_height{imgOriginal.rows};
-    return 62/pixel_height*n_pixels;
+    return 49*n_pixels/pixel_height;
 }
+
+int horizontol_degre(int measured_cols, int number_of_cols)
+{   
+    int degre_space{62/(number_of_cols + 1)};
+    if(measured_cols == number_of_cols/2) return 0;
+    if(measured_cols < number_of_cols/2) return (-31 + degre_space + degre_space*measured_cols);
+    if(measured_cols > number_of_cols/2) return (degre_space + degre_space*measured_cols - 31);
+} 
 
 /*
 int main()
