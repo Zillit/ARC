@@ -4,19 +4,33 @@
 using namespace std;
 namespace OPENGL
 {
-    float LEFT_=-0.5;
-    float RIGHT_=0.5;
-    float NEAR_=1;
-    float FAR_=300;
-    float TOP_=0.5;
-    float BOTTOM_=-0.5;
-    int WINDOW_HIGHT=960;
-    int WINDOW_WIDTH=1200;
-    string WINDOW_NAME="ARC User Main Window V 0.1";
+    const float LEFT_=-0.5;
+    const float RIGHT_=0.5;
+    const float NEAR_=1;
+    const float FAR_=300;
+    const float TOP_=0.5;
+    const float BOTTOM_=-0.5;
+    const int WINDOW_HIGHT=960;
+    const int WINDOW_WIDTH=1200;
+    const string WINDOW_NAME="ARC User Main Window V 0.1";
 }
 namespace ARC
 {
-    float TOP_SPEED=10;
+    const float TOP_SPEED=10;
+    
+    
+    const int COLS_TO_MEASURE=4;
+    const double HORIZONTAL_FOV = 62.2;
+    const double VERTICAL_FOV = 48.8;
+    const int ILOWH = 38;
+    const int IHIGHH = 72;
+    const int ILOWS = 50; 
+    const int IHIGHS = 255;
+    const int ILOWV = 50;
+    const int IHIGHV = 255;
+    const double HEIGHT_OF_CAMERA = 0.3;
+    const double ANGEL_OF_CAMERA = 20;
+
 }
 
 #endif
