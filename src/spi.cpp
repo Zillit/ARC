@@ -43,3 +43,12 @@ int SpiCom::slaveFeedback(unsigned char command)
     return 0;
 
 }
+int SpiCom::commandInterperter(unsigned char command)
+{
+    switch(command) {
+        case 0x00 :
+                cout << "testcommandInterperter" << endl;
+                break;
+    }
+    return 0;
+}

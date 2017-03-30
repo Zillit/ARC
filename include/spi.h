@@ -14,6 +14,7 @@ public:
     void readAndWrite(int device, char* data, unsigned int length);
 private:
     int slaveFeedback(unsigned char command);
+    int commandInterperter(unsigned char command);
 };
 
 #endif
