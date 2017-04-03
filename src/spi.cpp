@@ -255,3 +255,15 @@ int SpiCom::slaveFeedback(unsigned char command)
     return 0;
 
 }
+<<<<<<< HEAD
+=======
+int SpiCom::commandInterperter(unsigned char command)
+{
+    switch(command) {
+        case 0x00 :
+                cout << "testcommandInterperter" << endl;
+                break;
+    }
+    return 0;
+}
+>>>>>>> 786f2e47c03cb9fc46146b444e0c09a2d23c90a0
