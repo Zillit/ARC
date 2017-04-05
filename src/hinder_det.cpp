@@ -10,13 +10,49 @@ using namespace std;
 using namespace cv; 
 using namespace ARC;
 
+/*
+vector<int> width_between_measure()
+{
+	int half_pixel_width{PIXEL_WIDTH/2};
+	int pixel_width{COLS_TO_MEASURE/PIXEL_WIDTH};
+	vector<int> messure_pixel_width(COLS_TO_MEASURE);
+	
+	for(int i; i < COLS_TO_MEASURE; i++)
+	{
+		
+	}
+}
+	*/
+	
+vector<int> cols_x_value()
+{
+	int width_between_measure{PIXEL_WIDTH / (COLS_TO_MEASURE - 1)};
+	vector<int> x_value(COLS_TO_MEASURE);
+	
+	for(int i{1}; i <= COLS_TO_MEASURE/2 - 1; i++)
+	{
+		x_value[i - 1] = i * width_between_measure;
+	}
+	
+	x_value[COLS_TO_MEASURE/2 - 1] = PIXEL_WIDTH/2 - MESSURED_COL_RIGHT_LEFT_FROM_CENTER;
+	x_value[COLS_TO_MEASURE/2] = PIXEL_WIDTH/2;
+	x_value[COLS_TO_MEASURE/2 + 1] = PIXEL_WIDTH/2 + MESSURED_COL_RIGHT_LEFT_FROM_CENTER;
+	
+	for(int i{COLS_TO_MEASURE/2 + 3}; i <= COLS_TO_MEASURE; i++)
+	{
+		x_value[i - 1] = (i - 2) * width_between_measure;
+	}
+	
+	return x_value;
+}
+
 vector<int> detection_of_green(Mat camera_img)
 {
 
     //int pixel_height = camera_img.rows;
     //int pixel_width = camera_img.cols; 
 
-    int width_between_measure{PIXEL_WIDTH / (COLS_TO_MEASURE + 1)};
+    vector<int> width_between_measure(cols_x_value());
     vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
 
 

@@ -33,7 +33,7 @@ using namespace ARC;
 
 int main(int argc, char *argv[])
 {
-
+/*
     SpiCom *spi0 = new SpiCom;
     char *test = NULL;
     spi0->readAndWrite(0, test, 5);
@@ -52,10 +52,10 @@ int main(int argc, char *argv[])
     {
         FILE_LOG(logERROR) << e.what();
     }
-
+*/
 // Camera test
 
-/*
+
     //VideoCapture cap(0); //capture the video from web cam
 
 	raspicam::RaspiCam_Cv Camera;
@@ -78,12 +78,13 @@ int main(int argc, char *argv[])
 		
         Camera.retrieve(imgOriginal); // read a new frame from video
 
+/*
         if (!bSuccess) //if not success, break loop
         {
             cout << "Cannot read a frame from video stream" << endl;
             return -1;
         }
-
+*/
         Mat imgHSV;
 
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
         imshow("Original", imgOriginal);
         waitKey(30);
         
-       vector<double> a = y_distance_vector(imgOriginal);
+       vector<int> a = cols_x_value();
 
 
         for(int n{}; n < COLS_TO_MEASURE; n++)
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 
     }
 
-*/
+
     // graphicsInit(argc, argv);
     // glutMainLoop();
     // glutTimerFunc(10,&timer,0);

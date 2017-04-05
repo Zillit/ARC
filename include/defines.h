@@ -32,6 +32,7 @@ namespace ARC
     const double ANGEL_OF_CAMERA = 0;
     const int PIXEL_HEIGHT = 480;
     const int PIXEL_WIDTH = 640;
+    const int MESSURED_COL_RIGHT_LEFT_FROM_CENTER = 20;
     
 
 }

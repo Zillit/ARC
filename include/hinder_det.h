@@ -36,4 +36,6 @@ double y_distance(double vertical_degree);
 
 vector<double> y_distance_vector(Mat camera_img);
 
+vector<int> cols_x_value();
+
 #endif
