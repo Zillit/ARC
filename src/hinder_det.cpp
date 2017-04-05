@@ -13,11 +13,11 @@ using namespace ARC;
 vector<int> detection_of_green(Mat camera_img)
 {
 
-    int pixel_height = camera_img.rows;
-    int pixel_width = camera_img.cols; 
+    //int pixel_height = camera_img.rows;
+    //int pixel_width = camera_img.cols; 
 
-    int width_between_measure{pixel_width / (COLS_TO_MEASURE + 1)};
-    vector<int> pixel_height_to_with (COLS_TO_MEASURE, pixel_height);
+    int width_between_measure{PIXEL_WIDTH / (COLS_TO_MEASURE + 1)};
+    vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
 
 
     Mat imgHSV;
@@ -40,14 +40,16 @@ vector<int> detection_of_green(Mat camera_img)
     Moments picture_moments{moments(imgThresholded)};
     double pixel_area{picture_moments.m00};
 
+	double max_pixel_height{PIXEL_HEIGHT/2 + 
+		ANGEL_OF_CAMERA*PIXEL_HEIGHT/VERTICAL_FOV};
 
     if(pixel_area > 10000)
     {
         for(int count_cols{1}; count_cols <= COLS_TO_MEASURE; count_cols++){
 
-            for(int y{};y <= pixel_height; y += 5) 
+            for(int y{};y <= max_pixel_height; y += 10) 
             {
-                if(imgThresholded.at<uchar>(pixel_height - y, count_cols*width_between_measure) != 0) 
+                if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width_between_measure) != 0) 
                 { 
                     pixel_height_to_with[count_cols - 1] = y;
                     break;
@@ -65,8 +67,8 @@ return pixel_height_to_with;
 
 double vertical_degre(Mat imgOriginal, int n_pixels) 
 {  
-    int pixel_height{imgOriginal.rows};
-    return (double) VERTICAL_FOV*n_pixels/pixel_height;
+    //int pixel_height{imgOriginal.rows};
+    return (double) VERTICAL_FOV*n_pixels/PIXEL_HEIGHT;
 }
 
 double horizontol_degre(int measured_cols)

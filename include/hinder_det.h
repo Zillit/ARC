@@ -7,6 +7,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
+#include <raspicam/raspicam_cv.h>
 
 using namespace std;
 using namespace cv; 

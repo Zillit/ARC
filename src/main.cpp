@@ -24,10 +24,12 @@
 #include "log1.h"
 #else
 #include "log.h"
+#include <raspicam/raspicam_cv.h>
 #endif
 
 using namespace std;
 // using namespace cv;
+using namespace ARC;
 
 int main(int argc, char *argv[])
 {
@@ -54,19 +56,27 @@ int main(int argc, char *argv[])
 // Camera test
 
 /*
-    VideoCapture cap(0); //capture the video from web cam
+    //VideoCapture cap(0); //capture the video from web cam
 
-    if ( !cap.isOpened() )  // if not success, exit program
+	raspicam::RaspiCam_Cv Camera;
+	Camera.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+	Camera.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+
+    if ( !Camera.open() )  // if not success, exit program
     {
         cout << "Cannot open the web cam" << endl;
         return -1;
     }
+    
+
 
     while(true)
     {   
         Mat imgOriginal;
-
-        bool bSuccess = cap.read(imgOriginal); // read a new frame from video
+		
+		Camera.grab();
+		
+        Camera.retrieve(imgOriginal); // read a new frame from video
 
         if (!bSuccess) //if not success, break loop
         {
@@ -85,12 +95,14 @@ int main(int argc, char *argv[])
         imshow("Threshold", imgThresholded);
         imshow("Original", imgOriginal);
         waitKey(30);
+        
+       vector<double> a = y_distance_vector(imgOriginal);
 
 
-        //for(int n{}; n < COLS_TO_MEASURE; n++)
-        //{
-            cout << y_distance_vector(imgOriginal)[0];
-        //}
+        for(int n{}; n < COLS_TO_MEASURE; n++)
+        {
+            cout << a[n] << ", ";
+        }
 
         cout << endl;
 

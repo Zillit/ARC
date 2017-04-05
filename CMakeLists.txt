@@ -68,7 +68,15 @@ if(NOT glm_FOUND)
     message(ERROR " GLM not found!")
 endif(NOT glm_FOUND)
 
-find_package( OpenCV )
+find_package(OpenCV)
+IF  (NOT OpenCV_FOUND)
+MESSAGE(FATAL_ERROR "RASPICAM NOT FOUND IN YOUR SYSTEM")
+ENDIF()
+
+find_package(raspicam )
+IF  (NOT raspicam_CV_FOUND)
+MESSAGE(FATAL_ERROR "RASPICAM NOT FOUND IN YOUR SYSTEM")
+ENDIF()
 
 
 #creates a exe file
@@ -76,5 +84,5 @@ add_executable(ARC ${SOURCES} ${CSOURCES})
 target_compile_features(ARC PRIVATE cxx_range_for)
 
 
-target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY} ${OpenCV_LIBS})
+target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY} ${OpenCV_LIBS} ${raspicam_CV_LIBS})
 
