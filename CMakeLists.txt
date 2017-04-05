@@ -9,11 +9,14 @@ project(ARC)
 #include dictornary will include all the headers
 include_directories(include)
 include_directories(include/TSBK07)
+include_directories(include/shader_loader)
 
 #src dictonary will include all source files. the GLOB command will add all files off 
 #the type .cpp
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB CSCOURCES "src/TSBK07/*.c")
+file(GLOB SSORCES "src/shader_loader/*.cpp")
+file(GLOB CSSORCES "src/shader_loader/*.c")
 
 #Find external packeges
 IF (WIN32)
@@ -72,7 +75,7 @@ find_package( OpenCV )
 
 
 #creates a exe file
-add_executable(ARC ${SOURCES} ${CSOURCES})
+add_executable(ARC ${SOURCES} ${CSOURCES} ${SSOURCES})
 target_compile_features(ARC PRIVATE cxx_range_for)
 
 

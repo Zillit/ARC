@@ -20,7 +20,9 @@
 #include <string.h>
 
 #include "GL_utilities.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 // Shader loader
 
 char* readFile(char *file)
@@ -424,3 +426,7 @@ void useFBO(FBOstruct *out, FBOstruct *in1, FBOstruct *in2)
 	else
 		glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+#ifdef __cplusplus
+}
+#endif

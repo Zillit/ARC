@@ -99,6 +99,9 @@ cout << "test" << endl;
         glVertex3d(0.0, -1.0, -1.0);
     glEnd();
 }
+#ifdef __cplusplus
+extern "C" {
+#endif
 void init()
 {
 
@@ -113,39 +116,39 @@ void init()
     gluLookAt(0, 0, -3, 0, 0, 0, 0, 1, 0);
 
     // // GL inits
-    // glClearColor(0.2, 0.2, 0.5, 0);
-    // glEnable(GL_DEPTH_TEST);
-    // glDisable(GL_CULL_FACE);
-    // cout << "GL inits" << endl;
-    // projectionMatrix = glfrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
-    //     OPENGL::NEAR_, OPENGL::FAR_);
+    glClearColor(0.2, 0.2, 0.5, 0);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    cout << "GL inits" << endl;
+    glFrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
+        OPENGL::NEAR_, OPENGL::FAR_);
 
-    // program = LoadShader("basic.vert", "basic.frag");
-    // glUseProgram(program);
-    // cout << "init shader" << endl;
+    program = loadShader("basic.vert", "basic.frag");
+    glUseProgram(program);
+    cout << "init shader" << endl;
 
-    //     glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
-    //     glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
-    //     // LoadTGATextureSimple("maskros512.tga", &tex1);
-    //     // glActiveTexture(GL_TEXTURE0);
-    //     // glBindTexture(GL_TEXTURE_2D, tex1);
-    //     // LoadTGATextureData("fft-terrain.tga", &ttex);
-    //     // cleanMap(tm);
-    //     // tm = GenerateTerrain(&ttex, 1.0);
-    //     // m = LoadModelPlus("octagon.obj");
-    //     // m2 = LoadModelPlus("groundsphere.obj");
+        glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix);
+        glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
+        // LoadTGATextureSimple("maskros512.tga", &tex1);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, tex1);
+        // LoadTGATextureData("fft-terrain.tga", &ttex);
+        // cleanMap(tm);
+        // tm = GenerateTerrain(&ttex, 1.0);
+        // m = LoadModelPlus("octagon.obj");
+        // m2 = LoadModelPlus("groundsphere.obj");
 
-    //     // glUseProgram(program_skybox);
-    //     // glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
-    //     // glActiveTexture(GL_TEXTURE1);
-    //     // glUniform1i(glGetUniformLocation(program, "tex"), 1);
-    //     // LoadTGATextureSimple("SkyBox512.tga", &tex_sky);
+        // glUseProgram(program_skybox);
+        // glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+        // glActiveTexture(GL_TEXTURE1);
+        // glUniform1i(glGetUniformLocation(program, "tex"), 1);
+        // LoadTGATextureSimple("SkyBox512.tga", &tex_sky);
 
-    //     // glBindTexture(GL_TEXTURE_2D, tex_sky); // Bind Our Texture tex1
-    //     // skyBox = LoadModelPlus("skybox.obj");
-    //     // Load terrain data
-    //     glUseProgram(program);
-    //     cout << "init terrain" << endl;
+        // glBindTexture(GL_TEXTURE_2D, tex_sky); // Bind Our Texture tex1
+        // skyBox = LoadModelPlus("skybox.obj");
+        // Load terrain data
+        glUseProgram(program);
+        cout << "init terrain" << endl;
 }
 
 void display(void)
@@ -204,5 +207,8 @@ void graphicsInit(int argc, char *argv[])
     glutDisplayFunc(display);
     init();
 }
+#ifdef __cplusplus
+}
+#endif
 
 #endif
