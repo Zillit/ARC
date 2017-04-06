@@ -17,6 +17,7 @@ file(GLOB SOURCES "src/*.cpp")
 file(GLOB CSCOURCES "src/TSBK07/*.c")
 file(GLOB SSORCES "src/shader_loader/*.cpp")
 file(GLOB CSSORCES "src/shader_loader/*.c")
+file(GLOB SERVERSORCES "src/server/*.c")
 
 #Find external packeges
 IF (WIN32)
@@ -49,7 +50,7 @@ ELSE (WIN32)
 		/opt/local/lib
 		DOC "The GLEW library")
 ENDIF (WIN32)
-find_package(GLUT)
+find_package(GLUT REQUIRED)
 include_directories(${GLUT_INCLUDE_DIRS})
 link_directories(${GLUT_LIBRARY_DIRS})
 add_definitions(${GLUT_DEFINITIONS})
@@ -71,13 +72,22 @@ if(NOT glm_FOUND)
     message(ERROR " GLM not found!")
 endif(NOT glm_FOUND)
 
-find_package( OpenCV )
+# find_package(OpenCV)
+# IF  (NOT OpenCV_FOUND)
+# MESSAGE(FATAL_ERROR "RASPICAM NOT FOUND IN YOUR SYSTEM")
+# ENDIF()
+# find_package(raspicam)
+# IF  (NOT raspicam_CV_FOUND)
+# MESSAGE(FATAL_ERROR "RASPICAM NOT FOUND IN YOUR SYSTEM")
+# ENDIF()
 
 
 #creates a exe file
 add_executable(ARC ${SOURCES} ${CSOURCES} ${SSOURCES})
+# add_executable(Server ${SERVERSORCES})
 target_compile_features(ARC PRIVATE cxx_range_for)
 
+# target_compile_features(Server PRIVATE cxx_range_for)
 
-target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY} ${OpenCV_LIBS})
+target_link_libraries(ARC ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${glm_LIBRARY} ${GLEW_LIBRARY} )#${OpenCV_LIBS} ${raspicam_CV_LIBS})
 

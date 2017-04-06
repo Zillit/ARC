@@ -107,28 +107,28 @@ void init()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glFrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
-              OPENGL::NEAR_, OPENGL::FAR_);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    gluLookAt(0, 0, -3, 0, 0, 0, 0, 1, 0);
+    // glMatrixMode(GL_PROJECTION);
+    // glLoadIdentity();
+    // glFrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
+    //           OPENGL::NEAR_, OPENGL::FAR_);
+    // glMatrixMode(GL_MODELVIEW);
+    // glLoadIdentity();
+    // gluLookAt(0, 0, -3, 0, 0, 0, 0, 1, 0);
 
-    // // GL inits
-    glClearColor(0.2, 0.2, 0.5, 0);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    cout << "GL inits" << endl;
-    glFrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
-        OPENGL::NEAR_, OPENGL::FAR_);
+    // // // GL inits
+    // glClearColor(0.2, 0.2, 0.5, 0);
+    // glEnable(GL_DEPTH_TEST);
+    // glDisable(GL_CULL_FACE);
+    // cout << "GL inits" << endl;
+    // glFrustum(OPENGL::LEFT_, OPENGL::RIGHT_, OPENGL::BOTTOM_, OPENGL::TOP_,
+    //     OPENGL::NEAR_, OPENGL::FAR_);
 
-    program = loadShader("basic.vert", "basic.frag");
-    glUseProgram(program);
-    cout << "init shader" << endl;
+    // program = loadShader("basic.vert", "basic.frag");
+    // glUseProgram(program);
+    // cout << "init shader" << endl;
 
-        glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix);
-        glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
+    //     glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix);
+    //     glUniform1i(glGetUniformLocation(program, "tex"), 0); // Texture unit 0
         // LoadTGATextureSimple("maskros512.tga", &tex1);
         // glActiveTexture(GL_TEXTURE0);
         // glBindTexture(GL_TEXTURE_2D, tex1);

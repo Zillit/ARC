@@ -3,9 +3,6 @@
 #include <iostream>
 #include <string>
 
-
-using namespace std;
-
 class SpiCom
 {
 public:
