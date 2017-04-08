@@ -1,10 +1,15 @@
 /** Protocol
  *
  * structure of msg:    | cmd | from | to | checksum | len | data |
- * size in bytes:       |  1  |  1   | 1  |    1     |  4  | len  |
- *
+ * size in bytes:       |  1  |  1   | 1  |    1     |  2  | len  |
+ * 
+ * Half duplex SPI
  * By Kim
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <errno.h>
 #include <fcntl.h> // File control, used by SPI and FIFO
@@ -31,25 +36,28 @@ typedef int bool;
 #define true 1
 #define false 0
 
-#define NUM_ENDPOINTS 5
-#define HEADER_SIZE 8
+#define HEADER_SIZE 6
 
 // FIFO
-int fds[NUM_ENDPOINTS];
-bool fdsOpened[NUM_ENDPOINTS];
+#define FIFO_COUNT 7
+#define FIFO_TO 4
+int fds[FIFO_COUNT];
+bool fdsOpened[FIFO_COUNT];
 char fifo[][255] = 
 {
-    "/tmp/fifocontrol\0",
-    "/tmp/fifosensor\0",
-    "/tmp/fifodynmap\0",
-    "/tmp/fifoladar\0",
-    "/tmp/fifodebug\0",
+    "/tmp/fifo_to_control\0",
+    "/tmp/fifo_to_sensor\0",
+    "/tmp/fifo_to_dynmap\0",
+    "/tmp/fifo_to_ladar\0",
+    "/tmp/fifo_from_debug\0",
+    "/tmp/fifo_from_dynmap\0",
+    "/tmp/fifo_from_ladar\0",
 };
-
 
 // SPI settings etc.
 int spiCs0Fd;				//file descriptor for the SPI device
 int spiCs1Fd;				//file descriptor for the SPI device
+int spiFd;
 unsigned char spiMode;
 unsigned char spiBitsPerWord;
 unsigned int spiSpeed;
@@ -64,7 +72,8 @@ uint8_t txBuf[MAX_SIZE];
 uint8_t rxBuf[MAX_SIZE];
 uint8_t FifoBuf[MAX_SIZE];
 
-struct spi_ioc_transfer spi[MAX_SIZE];
+struct spi_ioc_transfer spiHeader;
+struct spi_ioc_transfer spiData;
 
 struct Packet
 {
@@ -94,35 +103,72 @@ typedef enum
     SEND_DATA = 0x20,
 } Cmd;
 
+void forwardPacket(uint8_t* buf);
+
+// Print buffer for debugging
+void printBuf(uint8_t* buf)
+{
+    buf[MAX_SIZE - 1] = '\0';
+    fprintf(stderr, buf);
+    fprintf(stderr, "\nPacket:\nCmd:%d\nFrom:%d\nTo:%d\nChecksum:%d\nLength:%d\nData:%s\n",
+        packet.cmd, packet.from, packet.to, packet.checksum, packet.len, packet.data);
+}
+
+bool checkPacket(struct Packet* packet)
+{
+    // TODO: Verify the checksum
+    if(packet->len > MAX_SIZE)
+    {
+        return false;
+    }
+    return true;
+}
+
+void bufferToPacket(uint8_t* buf, struct Packet* packet)
+{
+    packet->cmd                = buf[0];
+    packet->from               = buf[1];
+    packet->to                 = buf[2];
+    packet->checksum           = buf[3];
+    int netLen                 = buf[4] << 8 | buf[5];
+    packet->len                = ntohs(netLen);
+    packet->data               = &buf[6];
+}
+
 // SPI open port
 // spiDevice 0=CS0, 1=CS1
-int SpiOpenPort (int spiDevice)
+int spiOpenPort (int spiDevice)
 {
-	int statusValue = -1;
-	int *spiCsFd;
+	int statusValue;
+	//int *spiCsFd;
 	
 	spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
 	spiBitsPerWord = 8;    // Set bits per word
-	spiSpeed = 1000000;    // Set bus speed (1MHz)
+	spiSpeed = 1000000;    // Set bus speed
 
+    /*
     if (spiDevice == 0) 
         spiCsFd = &spiCs0Fd;
     else
         spiCsFd = &spiCs1Fd;
+    //*/
     
-    if (spiDevice ==0)
-        *spiCsFd = open("/dev/spidev0.0", O_RDWR);
+    if (spiDevice == 0)
+        //*spiCsFd = open("/dev/spidev0.0", O_RDWR);
+        spiFd = open("/dev/spidev0.0", O_RDWR);
     else
-        *spiCsFd = open("/dev/spidev0.1", O_RDWR);
+        //*spiCsFd = open("/dev/spidev0.1", O_RDWR);
+        spiFd = open("/dev/spidev0.1", O_RDWR);
     
-    if (*spiCsFd < 0)
+    //if (*spiCsFd < 0)
+    if(spiFd < 0)
     {
         // TODO: Better error handling, e.g. do not force quit the program.
         perror("Error, couldn't open SPI device'");
         exit(1);
     }
     
-    statusValue = ioctl(*spiCsFd, SPI_IOC_WR_MODE, &spiMode);
+    statusValue = ioctl(spiFd, SPI_IOC_WR_MODE, &spiMode);
 
     if (statusValue < 0)
     {
@@ -131,7 +177,7 @@ int SpiOpenPort (int spiDevice)
         exit(1);
     }
 
-    statusValue = ioctl(*spiCsFd, SPI_IOC_RD_MODE, &spiMode);
+    statusValue = ioctl(spiFd, SPI_IOC_RD_MODE, &spiMode);
 
     if (statusValue < 0)
     {
@@ -140,7 +186,7 @@ int SpiOpenPort (int spiDevice)
         exit(1);  
     }
 
-    statusValue = ioctl(*spiCsFd, SPI_IOC_WR_BITS_PER_WORD, &spiBitsPerWord);
+    statusValue = ioctl(spiFd, SPI_IOC_WR_BITS_PER_WORD, &spiBitsPerWord);
 
     if (statusValue <0)
     {
@@ -148,7 +194,7 @@ int SpiOpenPort (int spiDevice)
         perror("Couldn't set SPI BITS PER WORD (WR)");
         exit(1);
     }
-    statusValue = ioctl(*spiCsFd, SPI_IOC_RD_BITS_PER_WORD, &spiBitsPerWord);
+    statusValue = ioctl(spiFd, SPI_IOC_RD_BITS_PER_WORD, &spiBitsPerWord);
 
     if (statusValue <0)
     {
@@ -157,7 +203,7 @@ int SpiOpenPort (int spiDevice)
         exit(1);
     }
 
-    statusValue = ioctl(*spiCsFd, SPI_IOC_WR_MAX_SPEED_HZ, &spiSpeed);
+    statusValue = ioctl(spiFd, SPI_IOC_WR_MAX_SPEED_HZ, &spiSpeed);
 
     if (statusValue < 0)
     {
@@ -165,7 +211,7 @@ int SpiOpenPort (int spiDevice)
         perror("Couldn't set SPI speed (WR)");
         exit(1);
     }
-    statusValue = ioctl(*spiCsFd, SPI_IOC_RD_MAX_SPEED_HZ, &spiSpeed);
+    statusValue = ioctl(spiFd, SPI_IOC_RD_MAX_SPEED_HZ, &spiSpeed);
 
     if (statusValue < 0)
     {
@@ -178,9 +224,11 @@ int SpiOpenPort (int spiDevice)
 }
 
 // SPI close port
-int SpiClosePort (int spiDevice)
+int spiClosePort (int spiDevice)
 {
-    int statusValue = -1;
+    int statusValue;
+
+    /*
     int *spiCsFd;
 
     if (spiDevice == 0)
@@ -189,6 +237,8 @@ int SpiClosePort (int spiDevice)
         spiCsFd = &spiCs1Fd;
     
     statusValue = close(*spiCsFd);
+    //*/
+    statusValue = close(spiFd);
 
     if (statusValue <0)
     {
@@ -201,9 +251,10 @@ int SpiClosePort (int spiDevice)
 }
 
 // SPI write and read data
-int SpiWriteAndRead (int spiDevice, int length)
+void spiWriteAndRead (int spiDevice)
 {
-    int retVal = -1;
+    int ret;
+    /*
     int *spiCsFd;
 
     if (spiDevice == 0)
@@ -211,81 +262,82 @@ int SpiWriteAndRead (int spiDevice, int length)
     else
         spiCsFd = &spiCs1Fd;
 
-    SpiOpenPort(*spiCsFd);
+    spiOpenPort(*spiCsFd);
+    //*/
+    spiOpenPort(spiDevice);
 
     // Set receive buffers to 0
     memset(rxBuf, 0, MAX_SIZE);
 
     // Exchange protocol headers
-    retVal = ioctl(*spiCsFd, SPI_IOC_MESSAGE(HEADER_SIZE), &spi);
+    ret = ioctl(spiFd, SPI_IOC_MESSAGE(1), &spiHeader);
 
-    if (retVal < 0)
+    if (ret < 0)
     {
         // TODO: Better error handling, e.g. do not force quit the program.
         perror("Error, protocol header exchange failed.");
         exit(1);
     }
 
-    // Max of send or receive.
-    int rxSize;
-    memcpy(&rxSize, &spi[2], 4); // Copy length from receive buffer
-    rxSize = ntohl(rxSize); // Convert from network to host int
-    int transferSize = max(rxSize, length); // perform check
+    struct Packet rxPacket;
+    bufferToPacket(rxBuf, &rxPacket);
 
-    if(transferSize > 0)
+    if(rxPacket.len > (MAX_SIZE - HEADER_SIZE))
+    {
+        // TODO: Better error handling, e.g. do not force quit the program.
+        perror("Error, the packet is too big.");
+        exit(1);   
+    }
+
+    spiData.len = max(packet.len, rxPacket.len);
+
+    if(spiData.len > 0)
     {
         // Do buffer communication
-        struct spi_ioc_transfer* data = &spi[HEADER_SIZE];
-        retVal = ioctl(*spiCsFd, SPI_IOC_MESSAGE(transferSize), &data);
+        ret = ioctl(spiFd, SPI_IOC_MESSAGE(1), &spiData);
 
-        if (retVal < 0)
+        if (ret < 0)
         {
             // TODO: Better error handling, e.g. do not force quit the program.
             perror("Error, problem transmittning SPI data");
             exit(1);
         }
     }
-    
+
     // Set transmitt buffer to 0
     memset(txBuf, 0, MAX_SIZE);
 
-    SpiClosePort(*spiCsFd);
+    if(!checkPacket(&rxPacket))
+    {
+        // TODO: Better error handling, e.g. do not force quit the program.
+        perror("Error, packet error.");
+        exit(1);
+    }
 
-    return retVal;
+    spiClosePort(spiFd);
+
+    if(rxPacket.cmd != NUL)
+    {
+        forwardPacket(rxBuf);
+    }
 }
 
-void SpiInterrupt0 (void) 
+void spiInterrupt0 (void) 
 {
     dev0 = true;
 }
 
-void SpiInterrupt1 (void) 
+void spiInterrupt1 (void) 
 {
     dev1 = true;
 }
 
-//int SpiSend(Cmd c, Addr a, int length)
-int SpiSend()
-{
-    switch(packet.to)
-    {
-        case CONTROL:
-        case SENSOR:
-        // OK, the device is on the SPI bus.
-        break;
-        default:
-        // TODO: Error: Abort transmission.
-        perror("Address not on SPI bus.");
-        exit(1);
-    }
-}
-
 // Init
-void SpiInit()
+void spiInit()
 {
     wiringPiSetup();
-    wiringPiISR (21, INT_EDGE_FALLING, &SpiInterrupt0);
-    wiringPiISR (22, INT_EDGE_FALLING, &SpiInterrupt1);    
+    wiringPiISR (21, INT_EDGE_FALLING, &spiInterrupt0); // pin 29
+    wiringPiISR (22, INT_EDGE_FALLING, &spiInterrupt1); // pin 31    
 
     dev0 = false;
     dev1 = false;
@@ -293,26 +345,28 @@ void SpiInit()
     memset(txBuf, 0, MAX_SIZE);
     memset(rxBuf, 0, MAX_SIZE);
 
-    int i;
-    for(i = 0; i < MAX_SIZE; ++i)
-    {
-        spi[i].tx_buf        = (unsigned long) (txBuf + i); // trasmit data
-        spi[i].rx_buf        = (unsigned long) (rxBuf + i); // receive data
-        spi[i].len           = sizeof(*(txBuf + i));
-		spi[i].delay_usecs   = 0;
-		spi[i].speed_hz      = spiSpeed;
-		spi[i].bits_per_word = spiBitsPerWord;
-		spi[i].cs_change     = 0;
-    }
+    spiHeader.tx_buf        = (unsigned long) txBuf;
+    spiHeader.rx_buf        = (unsigned long) rxBuf;
+    spiHeader.len           = HEADER_SIZE;
+    spiHeader.delay_usecs   = 0;
+    spiHeader.speed_hz      = spiSpeed;
+    spiHeader.bits_per_word = spiBitsPerWord;
+    spiHeader.cs_change     = 0;
+
+    spiData.tx_buf          = (unsigned long) (txBuf + HEADER_SIZE);
+    spiData.rx_buf          = (unsigned long) (rxBuf + HEADER_SIZE);
+    spiData.len             = 0;
+    spiData.delay_usecs     = 0;
+    spiData.speed_hz        = spiSpeed;
+    spiData.bits_per_word   = spiBitsPerWord;
+    spiData.cs_change       = 0;
 }
 
 // FIFO init
-void FifoInit()
+void fifoInit()
 {
     int i, ret;
-
-    fprintf(stderr, "Make fifo\n");
-    for(i = 0; i < NUM_ENDPOINTS; ++i)
+    for(i = 0; i < FIFO_COUNT; ++i)
     {
         ret = mkfifo(fifo[i], 0777);
 
@@ -324,14 +378,12 @@ void FifoInit()
         }
     }
 
-    fprintf(stderr, "Open fifos\n");
-
-    for(i = 0; i < NUM_ENDPOINTS; ++i)
+    for(i = 0; i < FIFO_COUNT; ++i)
     {
         fdsOpened[i] = true;
     }
 
-    for(i = 0; i < 2; ++i)
+    for(i = 0; i < FIFO_TO; ++i)
     {
         fds[i] = open(fifo[i], O_RDONLY | O_NONBLOCK);
         if(fds[i] < 0)
@@ -349,7 +401,7 @@ void FifoInit()
         }
     }
 
-    for(i = 2; i < NUM_ENDPOINTS; ++i)
+    for(i = FIFO_TO; i < FIFO_COUNT; ++i)
     {
         fds[i] = open(fifo[i], O_WRONLY | O_NONBLOCK);
         if(fds[i] < 0)
@@ -370,7 +422,7 @@ void FifoInit()
 
 bool verifyFifo(int fd)
 {
-    if(fd >= NUM_ENDPOINTS)
+    if(fd >= FIFO_COUNT)
     {
         return false;
     }
@@ -391,45 +443,21 @@ bool verifyFifo(int fd)
     return false;
 }
 
-// Print buffer for debugging
-void printBuf(uint8_t* buf)
-{
-    fprintf(stderr, "Buffer:\n");
-    buf[MAX_SIZE - 1] = '\0';
-    fprintf(stderr, buf);
-    fprintf(stderr, "Packet:\nCmd:%d\nFrom:%d\nTo:%d\nChecksum:%d\nLength:%d\nData:%s",
-        packet.cmd, packet.from, packet.to, packet.checksum, packet.len, packet.data);
-}
-
-bool checkPacket()
-{
-    // TODO: Verify the checksum
-    if(packet.len > MAX_SIZE)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-void extractPacket(uint8_t* buf)
-{
-    packet.cmd                  = buf[0];
-    packet.from                 = buf[1];
-    packet.to                   = buf[2];
-    packet.checksum             = buf[3];
-    int netLen                  = buf[4] << 24 | buf[5] << 16 | buf[6] << 8 | buf[7];
-    packet.len                  = ntohl(netLen);
-    packet.data                 = &buf[8];
-}
-
 void forwardPacket(uint8_t* buf)
 {
-    extractPacket(buf);
-    printBuf(buf); // TODO: remove
-    checkPacket();
+    bufferToPacket(buf, &packet);
+    if(!checkPacket(&packet))
+    {
+        buf[HEADER_SIZE] = '\0';
+        printBuf(buf);
+        perror("Error, faulty packet.\n");
+        exit(1);
+    }
 
     int totalSize = HEADER_SIZE + packet.len;
+    buf[totalSize] = '\0';
+
+    printBuf(buf); // TODO: remove
     
     switch((Addr) packet.to)
     {
@@ -437,8 +465,7 @@ void forwardPacket(uint8_t* buf)
         case SENSOR:
             if(buf != txBuf)
                 memcpy(txBuf, buf, totalSize);
-            txBuf[totalSize] = '\0';
-            SpiWriteAndRead((int) packet.to, totalSize);
+            spiWriteAndRead((int) packet.to);
             break;
         case DYNMAP:
             if(verifyFifo(2))
@@ -462,15 +489,13 @@ int main(int argc, char *argv[])
 {
     fprintf(stderr, "Start\n");
 
-    // SPI
-    SpiInit();
-
-    // FIFO
-    int ret;
-    FifoInit();
+    spiInit();
+    fifoInit();
 
     // Main loop
     fprintf(stderr, "Entering main loop\n");
+
+    int ret;
     for(;;)
     {
         // FIFO Control
@@ -502,16 +527,19 @@ int main(int argc, char *argv[])
         {
             forwardPacket(FifoBuf);
         }
-        
+
         // SPI
         if(dev0)
         {
-            forwardPacket(rxBuf);
+            memset(txBuf, 0, MAX_SIZE);
+            spiWriteAndRead(0);
             dev0 = false;
         }
-        else if(dev1)
+        
+        if(dev1)
         {
-            forwardPacket(rxBuf);
+            memset(txBuf, 0, MAX_SIZE);
+            spiWriteAndRead(0);
             dev1 = false;
         }
 
@@ -522,3 +550,7 @@ int main(int argc, char *argv[])
 
     return -1;
 }
+
+#ifdef __cplusplus
+}
+#endif
