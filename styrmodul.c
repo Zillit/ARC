@@ -1,80 +1,92 @@
 /*
- * GccApplication2.c
+ * styrmodul.c
  *
- * Created: 3/21/2017 3:29:59 PM
+ * Created: 4/5/2017 4:16:12 PM
  *  Author: antpe759
  */ 
-#define F_CPU 1000000UL 
+
+#define F_CPU 1000000UL
+//#include <asf.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "spi_slave.h"
+
+//lite variabler
+//void handleNewData(uint8_t* data);
 
 int degrees;
 int speed; 
-int count = 0; 
-
-void mainloop(){
-	while(1)
-	{
-	_delay_ms(250);
-	OCR1A =  1500;
-	OCR3A =  1500;
-	} 	
-};
+int turnTot = 0;
+int speedTot = 0;
 
 
-void enable_interupt(){
-PCMSK0 |= 1<<PCINT0 | 1<<PCINT1 | 1<<PCINT2 | 1<<PCINT3;  
-PCICR |= 1<<PCIE0;
-PCIFR |= 1<<PCIE0;
-sei();
-}
-
+//void enable_interupt(){
+//	PCMSK0 |= 1<<PCINT0 | 1<<PCINT1 | 1<<PCINT2 | 1<<PCINT3;  
+//PCICR |= 1<<PCIE0;
+//PCIFR |= 1<<PCIE0;
+//
+//}
 
 
 void init_pwm() {
 DDRD |= 0xFF; //PD5 output (PWM)
 DDRB |= 0xFF; //PB6 output (PWM)
-DDRA |= 0x00; //alla A ingångar
-TCCR1A |= 1<<COM1A1 | 1<<COM1B1;
+DDRA |= 0x00; //alla A ingÃ¥ngar
+TCCR1A |= 1<<COM1A1 | 1<<COM1B1; //| 1<<COM1A0 | 1<<COM1B0;
 TCCR1B |= 1<<WGM13 | 1<<CS11;  
-TCCR3A |= 1<<COM3A1 | 1<<COM3B1;
-TCCR3B |= 1<<WGM33 | 1<<CS31;
 ICR1 = 20000/2;
-ICR3 = 20000/2;
-OCR1A =  1500;
-OCR3A =  1500;
-//_delay_ms(5000);
+OCR1A =  1500/2;
+OCR1B =  1500/2; //lek
+_delay_ms(5000);
 }
-
- int main(void)
-	{
-	enable_interupt();
-	init_pwm();
-	mainloop(); 
-}
-
 
 void turn(int degrees)
 {
-	OCR3A =  degrees;
+	if (degrees <= 10 && degrees >= -10){
+		OCR1B = (1500 - degrees*500/22)/2;
+	}
 }
 
-
 void forward(int speed){
-	OCR1A =  speed;
-}                                                                                                                                                                                                                                                                                                                                                                                                                                    
+	if(speed >= 0 && speed <= 30)
+	OCR1A =  (1500 + speed*500/12)/2;
+}
 
+void mainloop(){
+	while(1){
+		}
+}
 
-ISR(PCINT0_vect)
-{
-	//if(avbrott){
-	//Hämta degrees från raspberry
-	//Hämta speed från raspberry
-	//turn(degrees);
-	//forward(speed);
-	//count = 0; 
-	//return;
-	//}
-	return;
+int getSpeedData(uint8_t* data) {
+	for (int i = 8; i < 16; i++) {
+	speed += data[i]*2^(i-8);
+	} 
+    return speed;
+}
+
+int getDegreesData(uint8_t* data) {
+	for (int i = 0; i < 8; i++) {
+	degrees += data[i]*2^(i);
+	}
+    return degrees;
+}
+
+	
+void handleNewData(uint8_t* data, uint16_t length){
+	speed = getSpeedData(data);
+	degrees = getDegreesData(data);
+	forward(speed);
+	turn(degrees);
+}
+
+int main(void)
+	{
+	//enable_interupt();
+	init_pwm();
+	sei();
+	spiSlaveInit(CONTROL, &handleNewData);
+	uint8_t data[] = "random test data";
+	spiSend(SEND_DATA, DYNMAP, data, 16);
+	mainloop();	
 }
