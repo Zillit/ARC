@@ -54,7 +54,7 @@ void spiSlaveInit(Addr myAddress, void (*packetCallback)(uint8_t*, uint16_t))
 	myAddr = myAddress;
 	packetCb = packetCallback;
 	
-	DDRB =(1 << PB6); // Set MISO as output, the other ports are inputs
+	DDRB = (1 << DDB6) | (1 << DDB3); // Set MISO and PORTB3 as output, the other ports are inputs
 	SPCR = (1 << SPE); // Enable SPI
 }
 
@@ -129,10 +129,12 @@ void spiSend(Cmd cmd, Addr to, uint8_t* data, uint16_t length)
 
 	// Start spi transfer
 	SPDR = txBuf[txIndex++];
+	PORTB = (1 << PB3);
 }
 
 ISR(SPI_STC_vect, ISR_BLOCK)
-{
+{	
+	PORTB = (0 << PB3);
 	rxBuf[rxIndex++] = SPDR; // Read spi data register to rx buffer
 	SPDR = txBuf[txIndex++]; // Write tx to spi data register
 	
