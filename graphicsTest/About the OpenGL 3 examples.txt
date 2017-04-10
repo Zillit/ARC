@@ -1,0 +1,48 @@
+About the OpenGL 3 examples
+===========================
+
+2017 revision
+
+These are a set of very simple OpenGL 3.2 examples, moving through some basic functionality in small steps. This includes vertex/color/normal/texture coordinate buffers, basic transformations, textures, lighting and OBJ loading.
+
+The code is written and mostly tested under MacOS X 10.7 or 10.8 using Lightweight IDE (version 0.9.5p+3 or better recommended). It has also been tested under Linux, but testing there is limited so bugs may creep in.
+
+Under Linux, you can compile most (all) examples with a command line similar to this:
+
+gcc whitetriangle.c ../../common/*.c ../../common/Linux/*.c -lGL -o whitetriangle -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm
+
+Makefiles? Sorry, for 16 demos I don't quite have the time right now. For Lightweight IDE you don't need one (major point with the program). I may produce a makefile later if I find the time.
+
+In approximate order of complexity (which is pretty low for all of them):
+
+White triangle
+Rotation
+Rotation animation
+Colored triangle
+Phong triangle
+Textured quad
+Textured quad inline
+Color cube
+Textured cube
+Mipmapped cube
+Rotating gouraud cube
+Rotating phong cube
+Perspective bunny
+Rotating perspective bunny
+Textured teapot
+Perspective bunny 2
+
+plus the folder "Common":
+This folder holds a set of utility files:
+- GL_utilities: The main feature here is the shader loader (which will move into MicroGLut in the future once the Linux version is stable).
+- loadobj: Loads Wavefront OBJ 3D models. Note: Limited to simple models. Some models are built from multiple separate shapes, and we don't support that.
+- LoadTGA: Loads TGA images to textures. TGA is a simple image format with alpha support, suited for laboratory work.
+- MicroGlut: This is a GLUT subset, Mac/Linux/Windows. It is a really small cross-platform glue library.
+- VectorUtils3: A math library mainly dealing with vectors and matrices relevant for computer graphics.
+
+2017 revision: "White triangle bundled" was removed, not interesting and Mac specific, and "Perspective bunny 2" was added, demonstrating the higher-level usage of loadobj, where you can load and use OBJ files with very little code, more use of VectorUtils3, and a C++ version. Also, all demos are now updated to use MicroGlut regardless of platform.
+
+Thanks to Jens Ogniewski for testing early versions under Linux.
+
+
+by Ingemar Ragnemalm 2012-2017
