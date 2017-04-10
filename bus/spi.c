@@ -3,9 +3,11 @@
  * structure of msg:    | cmd | from | to | checksum | len | data |
  * size in bytes:       |  1  |  1   | 1  |    1     |  2  | len  |
  * 
- * Half duplex SPI
+ * Full duplex SPI-master
  * By Kim
  */
+
+ // TODO: Check main-loop time
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +20,7 @@ extern "C" {
 #include <linux/types.h> // used by FIFO
 #include <netinet/in.h> // ntohl, htonl, convert between host specific and network endians.
 #include <pthread.h> // used for yield
+#include <stdbool.h>
 #include <stdio.h> // Standard input/output
 #include <stdlib.h> // Standard library
 #include <string.h>
@@ -32,9 +35,11 @@ extern "C" {
      _a > _b ? _a : _b; })
 
 // Type define bool, since it does not exist in the C-language
+/*
 typedef int bool;
 #define true 1
 #define false 0
+//*/
 
 #define HEADER_SIZE 6
 
@@ -49,7 +54,7 @@ char fifo[][255] =
     "/tmp/fifo_to_sensor\0",
     "/tmp/fifo_to_dynmap\0",
     "/tmp/fifo_to_ladar\0",
-    "/tmp/fifo_from_debug\0",
+    "/tmp/fifo_from_dbug\0",
     "/tmp/fifo_from_dynmap\0",
     "/tmp/fifo_from_ladar\0",
 };
@@ -81,7 +86,7 @@ struct Packet
     uint8_t from;
     uint8_t to;
     uint8_t checksum;
-    uint32_t len;
+    uint16_t len;
     uint8_t* data;
 } packet;
 
@@ -92,7 +97,7 @@ typedef enum
     SENSOR = 0x01,
     DYNMAP = 0x02,
     LADAR = 0x03,
-    DEBUG = 0x41, // 'A' in ascii. TODO: remove this?
+    DBUG = 0x41, // 'A' in ascii. TODO: remove this?
 } Addr;
 
 // Commands that can be sent over the bus
@@ -114,13 +119,37 @@ void printBuf(uint8_t* buf)
         packet.cmd, packet.from, packet.to, packet.checksum, packet.len, packet.data);
 }
 
+uint8_t calcChecksum(struct Packet* packet)
+{
+	if (packet->len > (MAX_SIZE - HEADER_SIZE))
+	{
+		return 0;
+	}
+	
+	uint8_t checksum = packet->cmd + packet->from + packet->to + packet->len;
+	
+	int i;
+	
+	for(i = 0; i < packet->len; ++i)
+	{
+		checksum = checksum + packet->data[i];
+	}
+	
+	return checksum;
+}
+
 bool checkPacket(struct Packet* packet)
 {
-    // TODO: Verify the checksum
     if(packet->len > MAX_SIZE)
     {
         return false;
     }
+    
+    if(packet->checksum != calcChecksum(packet))
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -140,27 +169,16 @@ void bufferToPacket(uint8_t* buf, struct Packet* packet)
 int spiOpenPort (int spiDevice)
 {
 	int statusValue;
-	//int *spiCsFd;
-	
+
 	spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
 	spiBitsPerWord = 8;    // Set bits per word
 	spiSpeed = 1000000;    // Set bus speed
 
-    /*
-    if (spiDevice == 0) 
-        spiCsFd = &spiCs0Fd;
-    else
-        spiCsFd = &spiCs1Fd;
-    //*/
-    
     if (spiDevice == 0)
-        //*spiCsFd = open("/dev/spidev0.0", O_RDWR);
         spiFd = open("/dev/spidev0.0", O_RDWR);
     else
-        //*spiCsFd = open("/dev/spidev0.1", O_RDWR);
         spiFd = open("/dev/spidev0.1", O_RDWR);
-    
-    //if (*spiCsFd < 0)
+
     if(spiFd < 0)
     {
         // TODO: Better error handling, e.g. do not force quit the program.
@@ -227,17 +245,6 @@ int spiOpenPort (int spiDevice)
 int spiClosePort (int spiDevice)
 {
     int statusValue;
-
-    /*
-    int *spiCsFd;
-
-    if (spiDevice == 0)
-        spiCsFd = &spiCs0Fd;
-    else
-        spiCsFd = &spiCs1Fd;
-    
-    statusValue = close(*spiCsFd);
-    //*/
     statusValue = close(spiFd);
 
     if (statusValue <0)
@@ -254,16 +261,6 @@ int spiClosePort (int spiDevice)
 void spiWriteAndRead (int spiDevice)
 {
     int ret;
-    /*
-    int *spiCsFd;
-
-    if (spiDevice == 0)
-        spiCsFd = &spiCs0Fd;
-    else
-        spiCsFd = &spiCs1Fd;
-
-    spiOpenPort(*spiCsFd);
-    //*/
     spiOpenPort(spiDevice);
 
     // Set receive buffers to 0
@@ -446,6 +443,7 @@ bool verifyFifo(int fd)
 void forwardPacket(uint8_t* buf)
 {
     bufferToPacket(buf, &packet);
+
     if(!checkPacket(&packet))
     {
         buf[HEADER_SIZE] = '\0';
@@ -475,7 +473,7 @@ void forwardPacket(uint8_t* buf)
             if(verifyFifo(3))
                 write(fds[3], buf, totalSize);
             break;
-        case DEBUG:
+        case DBUG:
             if(verifyFifo(4))
                 write(fds[4], buf, totalSize);
             break;
