@@ -1,5 +1,5 @@
-// #ifndef HINDER_DET_H
-// #define HINDER_DET_H
+#ifndef HINDER_DET_H
+#define HINDER_DET_H
 
 #include <vector>
 #include <iostream>
