@@ -20,7 +20,7 @@ extern "C" {
 #include <linux/types.h> // used by FIFO
 #include <netinet/in.h> // ntohl, htonl, convert between host specific and network endians.
 #include <pthread.h> // used for yield
-#include <stdbool.h>
+//#include <stdbool.h>
 #include <stdio.h> // Standard input/output
 #include <stdlib.h> // Standard library
 #include <string.h>
@@ -35,11 +35,10 @@ extern "C" {
      _a > _b ? _a : _b; })
 
 // Type define bool, since it does not exist in the C-language
-/*
+
 typedef int bool;
 #define true 1
 #define false 0
-//*/
 
 #define HEADER_SIZE 6
 
@@ -63,9 +62,9 @@ char fifo[][255] =
 int spiCs0Fd;				//file descriptor for the SPI device
 int spiCs1Fd;				//file descriptor for the SPI device
 int spiFd;
-unsigned char spiMode;
-unsigned char spiBitsPerWord;
-unsigned int spiSpeed;
+unsigned char spiMode = SPI_MODE_0;
+unsigned char spiBitsPerWord = 8;
+unsigned int spiSpeed = 500000;
 
 // Interrupt flags for SPI interrupt pins
 volatile bool dev0;
@@ -109,14 +108,17 @@ typedef enum
 } Cmd;
 
 void forwardPacket(uint8_t* buf);
+void bufferToPacket(uint8_t*, struct Packet*);
 
 // Print buffer for debugging
 void printBuf(uint8_t* buf)
 {
     buf[MAX_SIZE - 1] = '\0';
     fprintf(stderr, buf);
+    struct Packet tmp;
+    bufferToPacket(buf, &tmp);
     fprintf(stderr, "\nPacket:\nCmd:%d\nFrom:%d\nTo:%d\nChecksum:%d\nLength:%d\nData:%s\n",
-        packet.cmd, packet.from, packet.to, packet.checksum, packet.len, packet.data);
+        tmp.cmd, tmp.from, tmp.to, tmp.checksum, tmp.len, tmp.data);
 }
 
 uint8_t calcChecksum(struct Packet* packet)
@@ -159,7 +161,7 @@ void bufferToPacket(uint8_t* buf, struct Packet* packet)
     packet->from               = buf[1];
     packet->to                 = buf[2];
     packet->checksum           = buf[3];
-    int netLen                 = buf[4] << 8 | buf[5];
+    int netLen                 = (buf[4] << 8) | buf[5];
     packet->len                = ntohs(netLen);
     packet->data               = &buf[6];
 }
@@ -170,9 +172,9 @@ int spiOpenPort (int spiDevice)
 {
 	int statusValue;
 
-	spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
-	spiBitsPerWord = 8;    // Set bits per word
-	spiSpeed = 1000000;    // Set bus speed
+	//spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
+	//spiBitsPerWord = 8;    // Set bits per word
+	//spiSpeed = 1000000;    // Set bus speed
 
     if (spiDevice == 0)
         spiFd = open("/dev/spidev0.0", O_RDWR);
@@ -303,38 +305,46 @@ void spiWriteAndRead (int spiDevice)
 
     // Set transmitt buffer to 0
     memset(txBuf, 0, MAX_SIZE);
-
-    if(!checkPacket(&rxPacket))
-    {
-        // TODO: Better error handling, e.g. do not force quit the program.
-        perror("Error, packet error.");
-        exit(1);
-    }
+    
+    fprintf(stderr, "\n\nPacket checksum:%d\nCalc   checksum:%d\n", rxPacket.checksum, calcChecksum(&rxPacket));
+    
+    fprintf(stderr, "\n\nReceived packet from SPI.");
+    printBuf(rxBuf);
 
     spiClosePort(spiFd);
 
-    if(rxPacket.cmd != NUL)
+	//*
+    if(checkPacket(&rxPacket))
     {
-        forwardPacket(rxBuf);
+		if(rxPacket.cmd != NUL)
+		{
+			forwardPacket(rxBuf);
+		}
     }
+    else
+    {
+        perror("Error, packet error.");
+	}
 }
 
 void spiInterrupt0 (void) 
 {
     dev0 = true;
+    fprintf(stderr, "int0\n");
 }
 
 void spiInterrupt1 (void) 
 {
     dev1 = true;
+    fprintf(stderr, "int1\n");
 }
 
 // Init
 void spiInit()
 {
     wiringPiSetup();
-    wiringPiISR (21, INT_EDGE_FALLING, &spiInterrupt0); // pin 29
-    wiringPiISR (22, INT_EDGE_FALLING, &spiInterrupt1); // pin 31    
+    wiringPiISR (21, INT_EDGE_RISING, &spiInterrupt0); // pin 29
+    wiringPiISR (22, INT_EDGE_RISING, &spiInterrupt1); // pin 31    
 
     dev0 = false;
     dev1 = false;
@@ -529,6 +539,7 @@ int main(int argc, char *argv[])
         // SPI
         if(dev0)
         {
+			fprintf(stderr, "handling int0\n");
             memset(txBuf, 0, MAX_SIZE);
             spiWriteAndRead(0);
             dev0 = false;
@@ -536,8 +547,9 @@ int main(int argc, char *argv[])
         
         if(dev1)
         {
+			fprintf(stderr, "handling int1\n");
             memset(txBuf, 0, MAX_SIZE);
-            spiWriteAndRead(0);
+            spiWriteAndRead(1);
             dev1 = false;
         }
 
