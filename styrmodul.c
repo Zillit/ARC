@@ -6,7 +6,7 @@
  */ 
 
 #define F_CPU 1000000UL
-//#include <asf.h>
+#include <asf.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
@@ -21,17 +21,14 @@ int turnTot = 0;
 int speedTot = 0;
 
 
-//void enable_interupt(){
-//	PCMSK0 |= 1<<PCINT0 | 1<<PCINT1 | 1<<PCINT2 | 1<<PCINT3;  
-//PCICR |= 1<<PCIE0;
-//PCIFR |= 1<<PCIE0;
-//
-//}
+void enable_interupt(){
+PCMSK0 |= 1<<PCINT12;  
+PCICR |= 1<<PCIE1;
+}
 
 
 void init_pwm() {
-DDRD |= 0xFF; //PD5 output (PWM)
-DDRB |= 0xFF; //PB6 output (PWM)
+DDRD |= 0xFF; //Alla D (PWM)
 DDRA |= 0x00; //alla A ingångar
 TCCR1A |= 1<<COM1A1 | 1<<COM1B1; //| 1<<COM1A0 | 1<<COM1B0;
 TCCR1B |= 1<<WGM13 | 1<<CS11;  
@@ -74,19 +71,27 @@ int getDegreesData(uint8_t* data) {
 
 	
 void handleNewData(uint8_t* data, uint16_t length){
-	speed = getSpeedData(data);
+	/*speed = getSpeedData(data);
 	degrees = getDegreesData(data);
 	forward(speed);
 	turn(degrees);
+	*/
+	PORTD |= (1<<PD6);
+	_delay_ms(1000);
+	PORTD |= (0<<PD6);
 }
 
 int main(void)
 	{
 	//enable_interupt();
 	init_pwm();
-	sei();
+	
+	//enable_interupt();
+	
 	spiSlaveInit(CONTROL, &handleNewData);
-	uint8_t data[] = "random test data";
-	spiSend(SEND_DATA, DYNMAP, data, 16);
+	sei();
+	
+	//uint8_t data[] = "random test data";
+	//spiSend(SEND_DATA, DYNMAP, data, 16);
 	mainloop();	
-}
+} 
