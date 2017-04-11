@@ -49,28 +49,25 @@ vector<int> cols_x_value()
 vector<int> detection_of_green(Mat camera_img)
 {
 
-    //int pixel_height = camera_img.rows;
-    //int pixel_width = camera_img.cols; 
-
-    vector<int> width_between_measure(cols_x_value());
+    int width_between_measure(PIXEL_WIDTH/COLS_TO_MEASURE);
     vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
 
-//     Mat imgHSV;
+     Mat imgHSV;
 
-//     cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+	cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
-//     Mat imgThresholded;
+	Mat imgThresholded;
 
     inRange(imgHSV, Scalar(ILOWH, ILOWS, ILOWV), Scalar(IHIGHH, IHIGHS, IHIGHV), imgThresholded); //Threshold the image
 
 
-//     //morphological opening (remove small objects from the foreground)
-//     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-//     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+     //morphological opening (remove small objects from the foreground)
+     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
 
-//     //morphological closing (fill small holes in the foreground)
-//     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-//     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+     //morphological closing (fill small holes in the foreground)
+     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
     Moments picture_moments{moments(imgThresholded)};
     double pixel_area{picture_moments.m00};
@@ -88,20 +85,18 @@ vector<int> detection_of_green(Mat camera_img)
                     pixel_height_to_with[count_cols - 1] = y;
                     break;
                 }
-               // else if (y == pixel_height )
-               // {
-               //     pixel_height_to_with[count_cols-1] = pixel_height;
-               // }
+                else if (y == PIXEL_HEIGHT )
+                {
+                    pixel_height_to_with[count_cols-1] = PIXEL_HEIGHT;
+                }
             }
         }
     }
-
-// return pixel_height_to_with;
-// }
+	return pixel_height_to_with;
+ }
 
 double vertical_degre(Mat imgOriginal, int n_pixels) 
 {  
-    //int pixel_height{imgOriginal.rows};
     return (double) VERTICAL_FOV*n_pixels/PIXEL_HEIGHT;
 }
 
