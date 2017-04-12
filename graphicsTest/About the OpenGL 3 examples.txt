@@ -9,7 +9,7 @@ The code is written and mostly tested under MacOS X 10.7 or 10.8 using Lightweig
 
 Under Linux, you can compile most (all) examples with a command line similar to this:
 
-gcc whitetriangle.c ../../common/*.c ../../common/Linux/*.c -lGL -o whitetriangle -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm
+gcc perspectivebunny.c ../../common/*.c ../../common/Linux/*.c -lGL -o test -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm
 
 Makefiles? Sorry, for 16 demos I don't quite have the time right now. For Lightweight IDE you don't need one (major point with the program). I may produce a makefile later if I find the time.
 
