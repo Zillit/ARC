@@ -17,7 +17,7 @@ def get_checksum(packet):
 
 
 
-def send_data(packet)
+def send_data(packet):
     with open(fifo_name, 'w') as f:
         for i in range(0,6):
             f.write(packet[i])
@@ -28,7 +28,7 @@ def send_data(packet)
 def main():
     angular = int(123.4125*100)
     data = hex(angular)
-    for i in range(0,10-len(hex(angular))):
+    for i in range(0,6-len(hex(angular))):
         data = data[:2] + str(0) + data[2:]
     distant = int(12425.1243)
     data = hex(distant) + data[2:]
@@ -40,7 +40,7 @@ def main():
         # b for binary mode
     #    f.write('{}\n'.format(len(data)).encode())
     #    f.write(data)
-    packet = [int('0x20', 16), int('0x03', 16), int('0x02', 16), 0, len(data)-2, data]
+    packet = [int('0x20', 16), int('0x03', 16), int('0x02', 16), 0, len(data)-2, int(data, 16)]
     packet[3] = get_checksum(packet)
     if stat.S_ISFIFO(os.stat(fifo_name).st_mode):
         send_data(packet)
