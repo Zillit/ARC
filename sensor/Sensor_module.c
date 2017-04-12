@@ -152,13 +152,13 @@ int main(void)
 	EIMSK = (1 << INT1) | (1 << INT0);								   //externa interrupts sker på INT1 & INT0
 //	PCICR = (1 << PCIE1);
 //	PCMSK1 = (1 << PCINT11);
+	
+    spiSlaveInit(DYNMAP, &handleNewData);
 	sei();								//enable interrupts
 	
 	
     while(1)
-    {	 
-	   //spiSlaveInit(DYNMAP, &handleNewData);
-    }
+    {}
 }
 
 // 9,4 ms är minsta tiden mellan två mätningar
