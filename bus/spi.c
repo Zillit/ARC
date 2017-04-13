@@ -103,7 +103,6 @@ typedef enum
 typedef enum
 {
     NUL = 0x00,         // Nothing to say
-    CHECK_FAIL = 0x01,  // Check sum
     SEND_DATA = 0x20,
 } Cmd;
 
@@ -172,9 +171,9 @@ int spiOpenPort (int spiDevice)
 {
 	int statusValue;
 
-	//spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
-	//spiBitsPerWord = 8;    // Set bits per word
-	//spiSpeed = 1000000;    // Set bus speed
+	spiMode = SPI_MODE_0;  // Clock idle low, data is clocked in on rising edge, output data (change) on falling edge
+	spiBitsPerWord = 8;    // Set bits per word
+	spiSpeed = 1000000;    // Set bus speed
 
     if (spiDevice == 0)
         spiFd = open("/dev/spidev0.0", O_RDWR);
@@ -267,7 +266,7 @@ void spiWriteAndRead (int spiDevice)
 
     // Set receive buffers to 0
     memset(rxBuf, 0, MAX_SIZE);
-
+ 
     // Exchange protocol headers
     ret = ioctl(spiFd, SPI_IOC_MESSAGE(1), &spiHeader);
 
@@ -275,7 +274,6 @@ void spiWriteAndRead (int spiDevice)
     {
         // TODO: Better error handling, e.g. do not force quit the program.
         perror("Error, protocol header exchange failed.");
-        exit(1);
     }
 
     struct Packet rxPacket;
@@ -284,8 +282,7 @@ void spiWriteAndRead (int spiDevice)
     if(rxPacket.len > (MAX_SIZE - HEADER_SIZE))
     {
         // TODO: Better error handling, e.g. do not force quit the program.
-        perror("Error, the packet is too big.");
-        exit(1);   
+        perror("Error, the packet is too big."); 
     }
 
     spiData.len = max(packet.len, rxPacket.len);
@@ -299,21 +296,14 @@ void spiWriteAndRead (int spiDevice)
         {
             // TODO: Better error handling, e.g. do not force quit the program.
             perror("Error, problem transmittning SPI data");
-            exit(1);
         }
     }
 
     // Set transmitt buffer to 0
     memset(txBuf, 0, MAX_SIZE);
     
-    fprintf(stderr, "\n\nPacket checksum:%d\nCalc   checksum:%d\n", rxPacket.checksum, calcChecksum(&rxPacket));
-    
-    fprintf(stderr, "\n\nReceived packet from SPI.");
-    printBuf(rxBuf);
-
     spiClosePort(spiFd);
 
-	//*
     if(checkPacket(&rxPacket))
     {
 		if(rxPacket.cmd != NUL)
@@ -325,6 +315,8 @@ void spiWriteAndRead (int spiDevice)
     {
         perror("Error, packet error.");
 	}
+	
+	forwardPacket(rxBuf);
 }
 
 void spiInterrupt0 (void) 
@@ -459,7 +451,6 @@ void forwardPacket(uint8_t* buf)
         buf[HEADER_SIZE] = '\0';
         printBuf(buf);
         perror("Error, faulty packet.\n");
-        exit(1);
     }
 
     int totalSize = HEADER_SIZE + packet.len;

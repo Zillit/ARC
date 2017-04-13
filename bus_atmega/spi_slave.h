@@ -18,7 +18,6 @@
 typedef enum
 {
 	NUL = 0x00,         // Nothing to say
-	CHECK_FAIL = 0x01,  // Check sum
 	SEND_DATA = 0x20,
 } Cmd;
 
