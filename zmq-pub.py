@@ -5,11 +5,11 @@
 import zmq
 from random import randrange
 
-context = zmq.Context
+context = zmq.Context()
 
 # Socket to send message on
 sender = context.socket(zmq.PUB)
-sender.connect("tcp://localhost:5556")
+sender.bind("tcp://*:5556")
 
 #Lidar loop sends BT data
 while True:
@@ -17,8 +17,9 @@ while True:
 	# Formatera om datan till lämplig stil
 	# dist = s....
 	# angle = s....
-	ID = 1
+	ID = 10001
 	dist = randrange(1,500)
 	angle = randrange(1,360)
-	sender.send_string("%i %i %i" (ID, dist, angle))
-	
+	print("sending")
+	sender.send_string("%i %i %i" % (ID, dist, angle))
+	print("%i %i %i" % (ID, dist, angle))
