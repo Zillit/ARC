@@ -41,6 +41,15 @@ void glutRepeatingTimer(int millis);
 
 void glutInitContextVersion(int major, int minor);
 
+void glutHideCursor();
+void glutShowCursor();
+void glutWarpPointer(int x, int y);
+void glutFullScreen();
+void glutExitFullScreen();
+void glutToggleFullScreen();
+void glutPositionWindow(int x, int y);
+void glutReshapeWindow(int width, int height);
+
 /* Mouse buttons. */
 #define GLUT_LEFT_BUTTON		0
 // No support for middle yet

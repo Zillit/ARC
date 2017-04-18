@@ -9,5 +9,6 @@ void main(void)
 	float shade;
 	
 	shade = dot(normalize(exNormal), light);
+	// outColor = vec4(light,0);
 	outColor = vec4(shade, shade, shade, 1.0);
 }

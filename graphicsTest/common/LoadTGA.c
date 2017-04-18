@@ -6,6 +6,8 @@
 // 140520: Supports grayscale images (loads to red channel).
 // 141007: Added SaveTGA. (Moved from the obsolete LoadTGA2.)
 // 160302: Uses fopen_s on Windows, as suggested by Jesper Post. Should reduce warnings a bit.
+// 170220: Changed fopen_s to "rb". This made it fail for some textures.
+// 170331: Cleaned up a bit to remove warnings.
 
 // NOTE: LoadTGA does NOT support all TGA variants! You may need to re-save your TGA
 // with different settings to find a suitable format.
@@ -52,7 +54,7 @@ bool LoadTGATextureData(char *filename, TextureData *texture)	// Loads A TGA Fil
 	// It seems Windows/VS doesn't like fopen any more, but fopen_s is not on the others.
 	FILE *file;
 	#if defined(_WIN32)
-		fopen_s(&file, filename, "r");
+		fopen_s(&file, filename, "rb");
 	#else
 		file = fopen(filename, "rb"); // rw works everywhere except Windows?
 	#endif
@@ -67,10 +69,6 @@ bool LoadTGATextureData(char *filename, TextureData *texture)	// Loads A TGA Fil
 				(memcmp(TGAcompressedbwheader, actualHeader, sizeof(TGAcompressedheader)) != 0)
 			)
 			{
-//				printf("Unknown header: ");
-//				for (i = 0; i < 12; i++)
-//					printf("%d ", actualHeader[i]);
-//				printf("\n");
 				err = 3; // Does The Header Match What We Want?
 			}
 	else if (fread(header, 1, sizeof(header), file) != sizeof(header)) err = 4; // If So Read Next 6 Header Bytes
@@ -262,7 +260,7 @@ int SaveDataToTGA(char			*filename,
 			 unsigned char	pixelDepth,
 			 unsigned char	*imageData)
 {
-	unsigned char cGarbage = 0,mode,aux;
+	unsigned char cGarbage = 0, mode,aux;
 	int i, w, ix;
 	FILE *file;
 	char /*GLubyte*/ TGAuncompressedheader[12]={ 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0};	// Uncompressed TGA Header
@@ -274,7 +272,7 @@ int SaveDataToTGA(char			*filename,
 
 // compute image type: 2 for RGB(A), 3 for greyscale
 	mode = pixelDepth / 8;
-// The type is currently not used, but should.
+// NOT YET IMPLEMENTED
 //	if ((pixelDepth == 24) || (pixelDepth == 32))
 //		type = 2;
 //	else
