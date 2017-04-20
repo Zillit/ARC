@@ -34,8 +34,15 @@ double horizontol_degre(int measured_cols);
  */
 double y_distance(double vertical_degree);
 
+/*
+ * Return a vector of distances to obsticals
+ * in diffrent directions
+ */
 vector<double> y_distance_vector(Mat camera_img);
 
+/*
+ * Calculate where in the picture the distance mesurement hapens
+ */
 vector<int> cols_x_value();
 
 #endif

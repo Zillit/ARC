@@ -2,6 +2,10 @@
 
 double r[] = {0,0};
 
+// Funktion för kalmanfilter, x är föregående värde, P är föregående varians
+// z är intaget värde, R är varians på sensorn.
+//Alla värde kan sättas godtyckligt i början men de första värdena blir bättre
+//desto närmare verklighetn initialvärden sätts.
 void kalmanfilter(double x, double P, double z, double R)
 {
     //double F = 1;
@@ -26,17 +30,14 @@ int main()
     for(int i = 0; i < 2; i++)
     std:printf("%f\n",r[i]);
 
-
-    for(int a = 0; a < 1000 ; a++)
+    for(int a = 0; a < 10 ; a++)
     {
-    
-        kalmanfilter(r[0],r[1],a,100);   
+        kalmanfilter(r[0],r[1],100,100);   
 
         for(int i = 0; i < 2; i++)
         {
             printf("%f\n",r[i]);
         }
-
     } 
 
     return 0;

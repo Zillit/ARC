@@ -139,23 +139,20 @@ int main(void)
 {
 
 	//Start clock
-	TCNT0 = 0;					//speciell klocka som går långsamt
+	TCNT0 = 0;			//speciell klocka som går långsamt
 	TIMSK0 = (1 << TOIE0);		//enable overflow_interrupts 
 	TCCR0B = (1 << CS00);		//startar timer_counter0
 	
-	TCNT2 = 0;					//speciell klocka som går långsamt
+	TCNT2 = 0;			//speciell klocka som går långsamt
 	TIMSK2 = (1 << TOIE2);		//enable overflow_interrupts 
 	TCCR2B =  (1 << CS20);		//startar timer_counter0
 	
-	DDRD = 0x00;				//datadirection till insignal D-reg
-	EICRA = (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00); //interrupts vid endast högflank
-	EIMSK = (1 << INT1) | (1 << INT0);								   //externa interrupts sker på INT1 & INT0
-//	PCICR = (1 << PCIE1);
-//	PCMSK1 = (1 << PCINT11);
+	DDRD = 0x00;			//datadirection till insignal D-reg
+	EICRA = (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00);	//interrupts vid endast högflank
+	EIMSK = (1 << INT1) | (1 << INT0);	//externa interrupts sker på INT1 & INT0
 	
-    spiSlaveInit(DYNMAP, &handleNewData);
-	sei();								//enable interrupts
-	
+	spiSlaveInit(DYNMAP, &handleNewData);
+	sei();				//enable interrupts
 	
     while(1)
     {}
