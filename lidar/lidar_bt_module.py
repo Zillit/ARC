@@ -12,8 +12,8 @@
 #!/usr/bin/env python3
 import bluetooth
 import time
-import math
-from tkinter import *
+#import math
+#from tkinter import *
 
 import zmq
 from random import randrange
@@ -37,7 +37,7 @@ lista =""
 i=0
 #for i in range(0,200):
 #    lista2.append([1000,1000])
-	
+sender.send_string("%i %i %i" %(ID, 1337, 1337)) # First discarded transmission	
 	
 while True:
     data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
