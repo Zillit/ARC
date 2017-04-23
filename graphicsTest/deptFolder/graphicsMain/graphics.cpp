@@ -28,10 +28,15 @@
 #include <array>
 #include <map>
 #include <algorithm>
+#include <ctime>
+#include <libssh/libssh.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 using namespace std;
 using namespace OPENGL;
 Model *m, *skyBox;
+
 // Reference to shader program
 GLuint program, program_skybox, program_terrain;
 GLuint tex_sky, tex_terrain;
@@ -41,7 +46,7 @@ struct cameraSample;
 
 ModelObj *testClass;
 
-map<pair<GLint, GLint>, GLfloat> ladarPoints;
+vector<pair<GLint, GLint>> ladarPoints;
 map<pair<GLint,GLint>,GLfloat> testMap;
 Model *testM;
 
@@ -49,6 +54,7 @@ GLfloat FLOOR_RANGE=3, FLOOR_FALLOFF=0.1;
 GLuint FLOOR_DEPT_RES=128, FLOOR_WIDTH_RES=128;
 vec3 CAM_POS{0,5,15}, TARGET{0,0,0}, UP{0,1,0}; 
 mat4 modelCoords;
+    int rotation=0;
 
 
 vec3 GenerateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, int FLOOR_WIDTH_RES, int FLOOR_DEPT_RES)
@@ -78,19 +84,19 @@ void findSurroundingCoords(vec3 coords, GLuint range, GLfloat falloff, map<pair<
             pair<GLint,GLint> mapObjPair {xIt+x,zIt+z};
             GLfloat val=1+10/(1+falloff*distance);
             if(pairInRange(mapObjPair))
-            mapObj[mapObjPair]=val;
+            mapObj[mapObjPair]=max(val, mapObj[mapObjPair]);
 
             mapObjPair ={-xIt+x,zIt+z};
             if(pairInRange(mapObjPair))
-            mapObj[mapObjPair]=val;
+            mapObj[mapObjPair]=max(val, mapObj[mapObjPair]);
 
             mapObjPair ={xIt+x,-zIt+z};
             if(pairInRange(mapObjPair))
-            mapObj[mapObjPair]=val;
+            mapObj[mapObjPair]=max(val, mapObj[mapObjPair]);
 
             mapObjPair ={-xIt+x,-zIt+z};
             if(pairInRange(mapObjPair))
-            mapObj[mapObjPair]=val;
+            mapObj[mapObjPair]=max(val, mapObj[mapObjPair]);
             }
         }
     }
@@ -193,13 +199,13 @@ Model *generateFlatTerrrain()
 
     return model;
 }
-void paintLadarPoints(map<pair<GLint,GLint>,GLfloat> &ladarPoints, mat4 translation, Model* m)
+void paintLadarPoints(vector<pair<GLint,GLint>> &ladarPoints, mat4 translation, Model* m)
 {
     map<pair<GLint,GLint>,GLfloat> tempMap;
 
     for(it:ladarPoints)
     {
-        pair<GLint,GLint> temp{-(int)translation.m[3]+it.first.first,-(int)translation.m[11]+it.first.second};
+        pair<GLint,GLint> temp{-(int)translation.m[3]+it.first,-(int)translation.m[11]+it.second};
         if(pairInRange(temp))
             findSurroundingCoords(vec3(temp.first,0,temp.second), 5, 0.1,tempMap);
         // modifyFloorY(temp.first, temp.second, it.second, testM);
@@ -220,6 +226,8 @@ void init(void)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_TRUE);
     printError("GL inits");
+    modelCoords = IdentityMatrix();
+    modelCoords = modelCoords*T(-64, 0, -128);
 
     projectionMatrix = frustum(LEFT_, RIGHT_, BOTTOM_, TOP_, NEAR_, FAR_);
     rotationMatrix = IdentityMatrix();
@@ -257,25 +265,28 @@ void init(void)
     printError("init arrays");
 }
 
+
 void display(void)
 {
     // clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     printError("pre display");
-
     a += 0.05;
     glUseProgram(program_terrain);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex_terrain);
-    total = camMatrix * modelCoords;
+    // mat4 rotationMatrix = Rz(a / 3) * Ry(a);
+    total =modelCoords*rotationMatrix*camMatrix;
+    glUniformMatrix4fv(glGetUniformLocation(program_terrain, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+    // glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
     DrawModel(testM, program_terrain, "inPosition", "inNormal", "inTexCoord");
     glUseProgram(program);
     // Just a smidgen of C++: Operator overloading.
     //	mat4 rotationMatrix = Mult(Rz(a/3), Ry(a)); is replaced by:
-    mat4 rotationMatrix = Rz(a / 3) * Ry(a);
     // glUniformMatrix4fv(glGetUniformLocation(program, "camMatrix"), 1, GL_TRUE, camMatrix.m);
-    // glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+    glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+    // glUniformMatrix4fv(glGetUniformLocation(program, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, rotationMatrix.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
     // cout << "test2" << endl;
@@ -313,8 +324,8 @@ void updateCamera(vec3 pos, vec3 target)
     camMatrix=lookAt(pos.x, pos.y, pos.z,target.x, target.y, target.z,UP.x,UP.y,UP.z);
     // glUseProgram(program);
     glUniformMatrix4fv(glGetUniformLocation(program, "camMatrix"), 1, GL_TRUE, camMatrix.m);
-    // glUseProgram(program_terrain);
-    // glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
+    glUseProgram(program_terrain);
+    glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
 
 }
 void cameraManipulationInput(unsigned char key, int x, int y)
@@ -354,30 +365,43 @@ void cameraManipulationInput(unsigned char key, int x, int y)
 	// sendToARC(changeDirection(-deltaTheta));
 	break;
     case 'i':
-    modelCoords=modelCoords*T(0,0,-1);
+    system("echo -ne \"/x01/x02/x03/\" /dev/spi0.0");
+    modelCoords=modelCoords*T(0,0,-SPEED_TRANS);
     clearFloorY(testM);
      paintLadarPoints(ladarPoints,modelCoords,testM);
     break;
     case 'k':
-    modelCoords=modelCoords*T(0,0,1);
+    modelCoords=modelCoords*T(0,0,SPEED_TRANS);
     clearFloorY(testM);
-     paintLadarPoints(ladarPoints,modelCoords,testM);
+     paintLadarPoints(ladarPoints,modelCoords*rotationMatrix,testM);
     break;
     case 'j':
-    modelCoords=modelCoords*T(-1,0,0);
+    modelCoords=modelCoords*T(-SPEED_TRANS,0,0);
     clearFloorY(testM);
-    paintLadarPoints(ladarPoints,modelCoords,testM);
+    paintLadarPoints(ladarPoints,modelCoords*rotationMatrix,testM);
     break;
     case 'l':
-    modelCoords=modelCoords*T(1,0,0);
+    modelCoords=modelCoords*T(SPEED_TRANS,0,0);
     clearFloorY(testM);
     paintLadarPoints(ladarPoints,modelCoords,testM);
     break;
+    case 'u':
+    rotation++;
+    rotationMatrix=T(64,0,0)*Ry(SPEED_ROT*rotation)*T(-64,0,0);
+    clearFloorY(testM);
+    paintLadarPoints(ladarPoints,modelCoords*rotationMatrix,testM);
+    break;
+    case 'o':
+    rotation--;
+    rotationMatrix=T(64,0,0)*Ry(SPEED_ROT*rotation)*T(-64,0,0);
+    clearFloorY(testM);
+    paintLadarPoints(ladarPoints,modelCoords*rotationMatrix,testM);
+    break;
     case 'g':
-    for(int i=1;i<3;i++)
+    for(int i=1;i<8;i++)
     {
         pair<GLint, GLint>testPair{-12+i*24+(int)modelCoords.m[3],-12+i*12+(int)modelCoords.m[11]};
-        ladarPoints[testPair]=5.2;
+        ladarPoints.push_back(testPair);
     }
     break;
     case 'b':
@@ -391,6 +415,13 @@ void cameraManipulationInput(unsigned char key, int x, int y)
 }
 int main(int argc, char *argv[])
 {
+    ssh_session my_ssh_session;
+    int verbosity =SSH_LOG_PROTOCOL;
+    int port = 2222;
+    my_ssh_session = ssh_new();
+    if(my_ssh_session==NULL)
+        cout << "Failed to initolize ssh session" << endl;
+    
     glutInit(&argc, argv);
     glutInitContextVersion(3, 2);
     glutInitWindowSize(1200, 1200);
@@ -405,11 +436,10 @@ int main(int argc, char *argv[])
         cameraSample temp{rand()%FLOOR_DEPT_RES, rand()%FLOOR_DEPT_RES};
         testVector.push_back(temp);
     }
-    TriangleGeometric *testClass = new TriangleGeometric;
+    // MarchingSquere *testClass = new MarchingSquere;
+    // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
     testM = generateFlatTerrrain();
-    modelCoords = IdentityMatrix();
-    modelCoords = T(-64, 0, -96);
-    total = camMatrix * projectionMatrix * modelCoords;
+    // total = camMatrix * projectionMatrix * modelCoords;
     vec3 testCoords[testVector.size()];
     // for (int i = 0; i < testVector.size(); i++)
     // {
@@ -423,7 +453,7 @@ int main(int argc, char *argv[])
     for(int i=1;i<5;i++)
     {
         pair<GLint, GLint>testPair{-12+i*24,-12+i*12};
-        ladarPoints[testPair]=5.2;
+        ladarPoints.push_back(testPair);
     }
     paintLadarPoints(ladarPoints,modelCoords,testM);
     // for(int i=0;i<50;i++)
@@ -461,4 +491,5 @@ int main(int argc, char *argv[])
         //                         3
         // );
         glutMainLoop();
+        ssh_free(my_ssh_session);
 }

@@ -22,7 +22,7 @@ libxi-dev
 Connect over ssh
 At the car input the command: ssh -N -R 2222:localhost:22 -p 4444 arc@nhkim91.ddns.net
 
-At the user input the command: ssh -t -p 4444 arc@nhikim91.ddns.net ssh -p 2222 pi@localhost
+At the user input the command: ssh -t -p 4444 arc@nhkim91.ddns.net ssh -p 2222 pi@localhost
 
 User name (user): arc, password: stavarett
 User name (car): pi, password: stavarett
@@ -32,3 +32,10 @@ Write make in the terminal.
 //gcc graphics.cpp -c -o mainGraphics.o -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES
 //g++ mainGraphics.o ../../common/*.c ../../common/Linux/*.c ../../common/*.cpp -lGL -o mainGraphics -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm -fpermissive
 This will create a exicutable named mainGraphics that takes simple keyboard commands and display a world.
+
+
+Make sure the pi is connected to the server:
+Install autossh, crontab.
+Make sure to give the pi.sh file permission by chmod 755 pi.sh. 
+Move the script into the bin folder so that it will be seen in path.
+Run #crontab @reboot /home/user/bin/pi.sh
