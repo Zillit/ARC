@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 #include <iterator>
-// #include "defines.h"
 
 using namespace std;
 struct cameraSample
@@ -33,16 +32,16 @@ class ModelObj
 public:
   ModelObj(){};
   ~ModelObj();
-  void printValues(vector<GLfloat> vec);
+  void printValues(GLfloat* vec,GLuint size);
   void generateModel();
   Model *getM() { return m; };
-
+protected:
   int vertexCount;
   int triangleCount;
-  vector<GLfloat> vertexVector;
-  vector<GLfloat> normalVector;
-  vector<GLfloat> texCoordVector;
-  vector<GLuint> indexVector;
+  GLfloat vertexVector[];
+  GLfloat normalVector[];
+  GLfloat texCoordVector[];
+  GLuint indexVector[];
   // Space for saving VBO and VAO IDs
   GLuint vao;            // VAO
   GLuint vb, ib, nb, tb; // VBOs
@@ -66,6 +65,15 @@ public:
   void generateFlatFloor();
 
 private:
+};
+
+class MarchingSquere:public ModelObj
+{
+public:
+ MarchingSquere(){};
+ ~MarchingSquere();
+ void generateFloor(GLuint FLOOR_DEPT_RES, GLuint FLOOR_WIDTH_RES);
+ vec3 generateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, GLuint dept, GLuint width);
 };
 
 #endif
