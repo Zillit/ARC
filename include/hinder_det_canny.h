@@ -13,4 +13,5 @@ using namespace std;
 using namespace cv; 
 
 vector<int> detect(Mat camera_img);
+vector<double> pixel_to_lenght(vector<int> pixles);
 

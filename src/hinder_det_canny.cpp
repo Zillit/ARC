@@ -42,3 +42,16 @@ vector<int> detect(Mat camera_img)
 
 	return pixels;
 }
+
+vector<double> pixel_to_lenght(vector<int> pixles)
+{
+	vector<double> lenght(COLS_TO MEASURE, 0);
+	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
+	double pixel_per_angel = VERTICAL_FOV/PIXEL_HEIGHT;
+
+	for(int n = 0; n < COLS_TO_MEASURE; n++)
+	{
+		lenght[n] =  HEIGHT_OF_CAMERA * tan(phi + (pixel_per_angel * pixeles[n]);
+	}
+	return lenght;
+}
