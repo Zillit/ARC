@@ -49,51 +49,51 @@ vector<int> cols_x_value()
 vector<int> detection_of_green(Mat camera_img)
 {
 
-    int width_between_measure(PIXEL_WIDTH/COLS_TO_MEASURE);
-    vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
+	int width_between_measure(PIXEL_WIDTH/COLS_TO_MEASURE);
+	vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
 
-     Mat imgHSV;
+	Mat imgHSV;
 
 	cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
 	Mat imgThresholded;
 
-    inRange(imgHSV, Scalar(ILOWH, ILOWS, ILOWV), Scalar(IHIGHH, IHIGHS, IHIGHV), imgThresholded); //Threshold the image
+	inRange(imgHSV, Scalar(ILOWH, ILOWS, ILOWV), Scalar(IHIGHH, IHIGHS, IHIGHV), imgThresholded); //Threshold the image
 
+	//morphological opening (remove small objects from the foreground)
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
 
-     //morphological opening (remove small objects from the foreground)
-     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+	//morphological closing (fill small holes in the foreground)
+	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
-     //morphological closing (fill small holes in the foreground)
-     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-    Moments picture_moments{moments(imgThresholded)};
-    double pixel_area{picture_moments.m00};
+	Moments picture_moments{moments(imgThresholded)};
+	double pixel_area{picture_moments.m00};
 	double max_pixel_height{PIXEL_HEIGHT/2 + 
 		ANGEL_OF_CAMERA*PIXEL_HEIGHT/VERTICAL_FOV};
 
-    if(pixel_area > 10000)
-    {
-        for(int count_cols{1}; count_cols <= COLS_TO_MEASURE; count_cols++){
+	if(pixel_area > 10000)
+	{
+		for(int count_cols{1}; count_cols <= COLS_TO_MEASURE; count_cols++){
 
-            for(int y{};y <= max_pixel_height; y += 10) 
-            {
-                if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width_between_measure) != 0) 
-                { 
-                    pixel_height_to_with[count_cols - 1] = y;
-                    break;
-                }
-                else if (y == PIXEL_HEIGHT )
-                {
-                    pixel_height_to_with[count_cols-1] = PIXEL_HEIGHT;
-                }
-            }
-        }
-    }
+			for(int y{};y <= max_pixel_height; y += 10) 
+			{
+				if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width_between_measure) != 0) 
+				{ 
+					pixel_height_to_with[count_cols - 1] = y;
+					break;
+				}
+				else if (y == PIXEL_HEIGHT )
+				{
+					pixel_height_to_with[count_cols-1] = PIXEL_HEIGHT;
+				}
+			}
+		}
+	}
+
 	return pixel_height_to_with;
- }
+}
 
 double vertical_degre(Mat imgOriginal, int n_pixels) 
 {  

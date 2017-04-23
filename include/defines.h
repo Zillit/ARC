@@ -33,7 +33,7 @@ namespace ARC
     const int PIXEL_HEIGHT = 480;
     const int PIXEL_WIDTH = 640;
     const int MESSURED_COL_RIGHT_LEFT_FROM_CENTER = 20;
-    
+    const int CANNY_THRE = 60;
 
 }
 
