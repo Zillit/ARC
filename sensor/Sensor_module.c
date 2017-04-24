@@ -18,6 +18,8 @@
 
 //#include "spi_slave.h"
 
+#define DDR_SPI DDRB
+#define DD_MISO 6
 
 volatile uint16_t timer0_overflow = 0;
 volatile uint16_t timer1_overflow = 0;
@@ -178,9 +180,10 @@ void spiInit(void) // enable SPI
 {	
 	DDR_SPI = (1<<DD_MISO);
 	SPCR = (1<<SPE)|(0<<CPOL)|(0<<CPHA)|(1<<SPIE);
-	DDRA |= 0xFF;
-	PORTA = SPDR;
-
+	//DDRA |= 0xFF;
+	//PORTA = SPDR;
+	uint8_t tmp = SPDR;
+}
 
 
 //Interrupt för sensormodul, byt ut variabeln send mot de 4 bytes som ska skickas [fyll i med något om 4 bytes är för mycket]
