@@ -29,9 +29,47 @@
 #include <map>
 #include <algorithm>
 #include <ctime>
-#include <libssh/libssh.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdexcept>
+#include <cstring>
+#include <zmq.hpp>
+#include <string>
+#include <iostream>
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <windows.h>
+
+#define sleep(n)    Sleep(n)
+#endif
+#include <zmq.h>
+
+using namespace std;
+
+int main () {
+    //  Prepare our context and socket
+    zmq::context_t context (1);
+    zmq::socket_t socket (context, ZMQ_REP);
+    socket.bind ("tcp://nhkim91.ddns.net:5555");
+
+    while (true) {
+        zmq::message_t request;
+
+        //  Wait for next request from client
+        socket.recv (&request);
+        std::cout << "Received Hello" << std::endl;
+
+        //  Do some 'work'
+        sleep(1);
+
+        //  Send reply back to client
+        zmq::message_t reply (5);
+        memcpy (reply.data (), "World", 5);
+        socket.send (reply);
+    }
+    return 0;
+}
 
 using namespace std;
 using namespace OPENGL;
@@ -413,83 +451,76 @@ void cameraManipulationInput(unsigned char key, int x, int y)
 	break;
     }
 }
-int main(int argc, char *argv[])
-{
-    ssh_session my_ssh_session;
-    int verbosity =SSH_LOG_PROTOCOL;
-    int port = 2222;
-    my_ssh_session = ssh_new();
-    if(my_ssh_session==NULL)
-        cout << "Failed to initolize ssh session" << endl;
+// int main(int argc, char *argv[])
+// {
     
-    glutInit(&argc, argv);
-    glutInitContextVersion(3, 2);
-    glutInitWindowSize(1200, 1200);
-    glutCreateWindow(WINDOW_NAME.c_str());
-    glutDisplayFunc(display);
-    glutRepeatingTimer(10);
-    init();
-    setUpCamera();
-    vector<cameraSample> testVector{};
-    for (int it = 0; it < 2000; it++)
-    {
-        cameraSample temp{rand()%FLOOR_DEPT_RES, rand()%FLOOR_DEPT_RES};
-        testVector.push_back(temp);
-    }
-    // MarchingSquere *testClass = new MarchingSquere;
-    // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
-    testM = generateFlatTerrrain();
-    // total = camMatrix * projectionMatrix * modelCoords;
-    vec3 testCoords[testVector.size()];
-    // for (int i = 0; i < testVector.size(); i++)
-    // {
-    //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
-    //     testCoords[i].y = rand()%10;
-    //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
-    //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
-    //     ladarPoints[temp]=testCoords[i].y;
-    //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
-    // }
-    for(int i=1;i<5;i++)
-    {
-        pair<GLint, GLint>testPair{-12+i*24,-12+i*12};
-        ladarPoints.push_back(testPair);
-    }
-    paintLadarPoints(ladarPoints,modelCoords,testM);
-    // for(int i=0;i<50;i++)
-    // {
-    //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
-    // }
+//     glutInit(&argc, argv);
+//     glutInitContextVersion(3, 2);
+//     glutInitWindowSize(1200, 1200);
+//     glutCreateWindow(WINDOW_NAME.c_str());
+//     glutDisplayFunc(display);
+//     glutRepeatingTimer(10);
+//     init();
+//     setUpCamera();
+//     vector<cameraSample> testVector{};
+//     for (int it = 0; it < 2000; it++)
+//     {
+//         cameraSample temp{rand()%FLOOR_DEPT_RES, rand()%FLOOR_DEPT_RES};
+//         testVector.push_back(temp);
+//     }
+//     // MarchingSquere *testClass = new MarchingSquere;
+//     // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
+//     testM = generateFlatTerrrain();
+//     // total = camMatrix * projectionMatrix * modelCoords;
+//     vec3 testCoords[testVector.size()];
+//     // for (int i = 0; i < testVector.size(); i++)
+//     // {
+//     //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
+//     //     testCoords[i].y = rand()%10;
+//     //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
+//     //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
+//     //     ladarPoints[temp]=testCoords[i].y;
+//     //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
+//     // }
+//     for(int i=1;i<5;i++)
+//     {
+//         pair<GLint, GLint>testPair{-12+i*24,-12+i*12};
+//         ladarPoints.push_back(testPair);
+//     }
+//     paintLadarPoints(ladarPoints,modelCoords,testM);
+//     // for(int i=0;i<50;i++)
+//     // {
+//     //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
+//     // }
 
-    // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
-    // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
-    // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
-    // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
-    // for(it:testMap)
-    // {
-    //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
-    // }
+//     // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
+//     // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
+//     // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
+//     // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
+//     // for(it:testMap)
+//     // {
+//     //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
+//     // }
     
 
-        // total= Ry(180);
-        // total = T(-64,0,0);
-        // CenterModel(testM);
-        // testClass->generateModel();
-        // cout << "test main" << endl;
-        // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
-        //             0.0f,5.0f,0.0f,
-        //             10.0f,0.0f,0.0f};
-        // vector<GLfloat> norm={0.0f,1.0f,0.0f};
-        // vector<GLfloat> tex={0.0f,0.0f};
-        // vector<GLuint> ind={0,3,6};
-        // testM =LoadDataToModel(&vert[0],
-        //                         &norm[0],
-        //                         &tex[0],
-        //                         NULL,
-        //                         &ind[0],
-        //                         3,
-        //                         3
-        // );
-        glutMainLoop();
-        ssh_free(my_ssh_session);
-}
+//         // total= Ry(180);
+//         // total = T(-64,0,0);
+//         // CenterModel(testM);
+//         // testClass->generateModel();
+//         // cout << "test main" << endl;
+//         // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
+//         //             0.0f,5.0f,0.0f,
+//         //             10.0f,0.0f,0.0f};
+//         // vector<GLfloat> norm={0.0f,1.0f,0.0f};
+//         // vector<GLfloat> tex={0.0f,0.0f};
+//         // vector<GLuint> ind={0,3,6};
+//         // testM =LoadDataToModel(&vert[0],
+//         //                         &norm[0],
+//         //                         &tex[0],
+//         //                         NULL,
+//         //                         &ind[0],
+//         //                         3,
+//         //                         3
+//         // );
+//         glutMainLoop();
+// }
