@@ -7,30 +7,30 @@ using namespace ARC;
 vector<int> detect(Mat camera_img)
 {
 	int width(PIXEL_WIDTH/COLS_TO_MEASURE);
-	vector<int> pixels(COLS_TO_MEASURE, PIXEL_HIGHT);
+	vector<int> pixels(COLS_TO_MEASURE, PIXEL_HEIGHT);
 
 	Mat detect;
 	Mat dst;
 
-	cvtColor(camera_img, detect, COLOR_BGR2GREY);
+	cvtColor(camera_img, detect, COLOR_BGR2GRAY);
 
 	blur(detect, detect, Size(3,3));
 
 	Canny(detect, detect, CANNY_THRE, 3*CANNY_THRE, 3);
 
-	dst = Scaler::all(0);
+	dst = Scalar::all(0);
 
-	camer_img.copyTo(dst, detect);
+	camera_img.copyTo(dst, detect);
 
 
-	for(int count_cols{1}; count_cols <= COLS_TO_MEASURE; count_cols++)
+	for(int count_cols = 1; count_cols <= COLS_TO_MEASURE; count_cols++)
 	{
 
-	for(int y{};y <= PIXEL_HIGHT; y += 10) 
+	for(int y = 0;y <= PIXEL_HEIGHT; y += 10) 
 	{
-		if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width) != 0) 
+		if(dst.at<uchar>(PIXEL_HEIGHT - y, count_cols*width) != 0) 
 		{ 
-			pixel[count_cols - 1] = y;
+			pixels[count_cols - 1] = y;
 			break;
 		}
 		else if (y == PIXEL_HEIGHT )
@@ -43,15 +43,15 @@ vector<int> detect(Mat camera_img)
 	return pixels;
 }
 
-vector<double> pixel_to_lenght(vector<int> pixles)
+vector<double> pixel_to_lenght(vector<int> pixels)
 {
-	vector<double> lenght(COLS_TO MEASURE, 0);
+	vector<double> lenght(COLS_TO_MEASURE, 0);
 	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
 	double pixel_per_angel = VERTICAL_FOV/PIXEL_HEIGHT;
 
 	for(int n = 0; n < COLS_TO_MEASURE; n++)
 	{
-		lenght[n] =  HEIGHT_OF_CAMERA * tan(phi + (pixel_per_angel * pixeles[n]);
+		lenght[n] =  HEIGHT_OF_CAMERA * tan(phi + (pixel_per_angel * pixels[n]));
 	}
 	return lenght;
 }

@@ -10,7 +10,7 @@
  // TODO: Check main-loop time
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" {	
 #endif
 
 #include <errno.h>
@@ -47,7 +47,7 @@ int spiCs1Fd;				//file descriptor for the SPI device
 int spiFd;
 unsigned char spiMode = SPI_MODE_0;
 unsigned char spiBitsPerWord = 8;
-unsigned int spiSpeed = 500000;
+unsigned int spiSpeed = 1000000;
 
 // Interrupt flags for SPI interrupt pins
 volatile bool dev0;
@@ -77,7 +77,6 @@ typedef enum
     CONTROL = 0x00,
     SENSOR = 0x01,
     DYNMAP = 0x02,
-    LADAR = 0x03,
     DBUG = 0x41, // 'A' in ascii. TODO: remove this?
 } Addr;
 
@@ -379,7 +378,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Start\n");
 
     spiInit();
-
+	
+	
     // Main loop
     fprintf(stderr, "Entering main loop\n");
 
