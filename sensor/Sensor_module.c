@@ -200,7 +200,9 @@ ISR(SPI_STC_vect)
 		case 'W':
 			if (inbyte == 0xFF)
 			{
-				//int32_t send = (count/4);
+                TIMSK0 = (0 << TOIE0);		//disable overflow_interrupts 
+                TIMSK2 = (0 << TOIE2);		//disable overflow_interrupts 
+                //int32_t send = (count/4);
 				int32_t send = (median_time1 << 16) + median_time0;
 				//convert to an array of bytes
 				SPDR = (uint8_t)(send & 0xff);
@@ -219,6 +221,8 @@ ISR(SPI_STC_vect)
 				if (dataindex == 4)
 				{
 					state = 'W';
+                    TIMSK0 = (1 << TOIE0);		//enable overflow_interrupts 
+                    TIMSK2 = (1 << TOIE2);		//enable overflow_interrupts 
 				}
 		break;
 	}
