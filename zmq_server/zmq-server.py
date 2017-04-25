@@ -25,20 +25,24 @@ backreq.bind("tcp://*:5667")
 #Subscribe on everything
 frontend.setsockopt(zmq.SUBSCRIBE, b'')
 
-#Forward data to PC and check for a pull
-while True:
-	try:
-		message = frontend.recv_multipart(zmq.DONTWAIT)
-		backend.send_multipart(message)
-	except zmq.Again:
-		None
-	try:
-		command = frontreq.recv_string(zmq.DONTWAIT)
-		frontreq.send_string(command)
-		backreq.send_string(command)
-		check = backreq.recv_string()
-		if command != check:
-			#ERROR.JPG
-			#SHUT SHIT DOWN
-	except zmq.Again:
-		None
+
+def main():
+	#Forward data to PC and check for a pull
+	while True:
+		try:
+			message = frontend.recv_multipart(zmq.DONTWAIT)
+			backend.send_multipart(message)
+		except zmq.Again:
+			None
+		try:
+			command = frontreq.recv_string(zmq.DONTWAIT)
+			frontreq.send_string(command)
+			backreq.send_string(command)
+			check = backreq.recv_string()
+			if command != check:
+				#ERROR.JPG
+				#SHUT SHIT DOWN
+		except zmq.Again:
+			None
+
+if __name__ == '__main__': main()
