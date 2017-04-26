@@ -10,7 +10,7 @@ frontend.connect("tcp://nhkim91.ddns.net:2224")
 frontreq = context.socket(zmq.REQ)
 frontreq.connect("tcp://nhkim91.ddns.net:2225")
 
-frontreq.send_string("t_STYROR_TestBithes")
+frontreq.send_string("t_STYROR_0xFF")
 # frontend.setsockopt_string(zmq.SUBSCRIBE, '10001'.decode('ascii'))
 
 while True:

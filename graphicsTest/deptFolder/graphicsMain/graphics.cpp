@@ -47,29 +47,7 @@
 
 using namespace std;
 
-// int main () {
-//     //  Prepare our context and socket
-//     zmq::context_t context (1);
-//     zmq::socket_t socket (context, ZMQ_REP);
-//     socket.bind ("tcp://*:5555");
 
-//     while (true) {
-//         zmq::message_t request;
-
-//         //  Wait for next request from client
-//         socket.recv (&request);
-//         std::cout << "Received Hello" << std::endl;
-
-//         //  Do some 'work'
-//         sleep(1);
-
-//         //  Send reply back to client
-//         zmq::message_t reply (5);
-//         memcpy (reply.data (), "World", 5);
-//         socket.send (reply);
-//     }
-//     return 0;
-// }
 
 using namespace std;
 using namespace OPENGL;
@@ -459,6 +437,25 @@ void cameraManipulationInput(unsigned char key, int x, int y)
 }
 int main(int argc, char *argv[])
 {
+    //  Prepare our context and socket
+    zmq::context_t context (1);
+    zmq::socket_t frontend (context, ZMQ_SUB);
+    int rc = zmq_connect (frontend, "tcp://nhkim91.ddns.net:2224");
+    assert (rc == 0);
+
+    zmq::socket_t frontreq (context, ZMQ_REQ);
+    rc = zmq_connect (frontreq, "tcp://nhkim91.ddns.net:2225");
+    assert (rc == 0);
+
+    while (true) {
+    cout << "before connect request" << endl;
+        zmq::message_t request;
+
+        //  Wait for next request from client
+        frontend.recv (&request);
+    cout << "after connect request" << endl;
+        std::cout << "Received Hello" << std::endl;
+
     
     glutInit(&argc, argv);
     glutInitContextVersion(3, 2);
@@ -529,4 +526,10 @@ int main(int argc, char *argv[])
         //                         3
         // );
         glutMainLoop();
+                //  Send reply back to client
+        zmq::message_t reply (5);
+        memcpy (reply.data (), "World", 5);
+        frontend.send (reply);
+    }
+
 }
