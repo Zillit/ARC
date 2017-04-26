@@ -8,7 +8,7 @@ context =  zmq.Context()
 
 #PUB to PC
 frontend = context.socket(zmq.PUB)
-frontend.bind("tcp://*:5665")
+frontend.connect("tcp://nhkim91@ddns:2223")
 
 #SUB from ARC
 #Implement autonomous part later
@@ -17,7 +17,7 @@ frontend.bind("tcp://*:5665")
 
 #REP to PC
 frontrep = context.socket(zmq.REP)
-frontrep.bind("tcp://*:5666")
+frontrep.connect("tcp://nhkim91@ddns.net:2226")
 
 #REP to ARC
 #Implement autonomous part later
@@ -26,7 +26,7 @@ frontrep.bind("tcp://*:5666")
 
 #REQ to SPI
 spi_req = context.socket(zmq.REQ)
-spi_req.bind("tcp://localhost:5558")
+spi_req.bind("tcp://*:5558")
 
 
 #Subscribe on everything
