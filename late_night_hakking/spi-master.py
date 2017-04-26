@@ -36,7 +36,7 @@ def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8) # Skicka kommando till styrmodulen via spi
 
 while True:
-	command = sock.recv_string() # Ta emot kommando via zmq
+	command = socket.recv_string() # Ta emot kommando via zmq
 	styr_transmit(int(command)) # Skicka till styr
 	#reply = sensor_transmit() # Läs sensordata 
 	reply = "hakka datta"
