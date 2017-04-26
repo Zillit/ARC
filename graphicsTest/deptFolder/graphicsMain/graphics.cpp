@@ -47,29 +47,29 @@
 
 using namespace std;
 
-int main () {
-    //  Prepare our context and socket
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REP);
-    socket.bind ("tcp://*:5555");
+// int main () {
+//     //  Prepare our context and socket
+//     zmq::context_t context (1);
+//     zmq::socket_t socket (context, ZMQ_REP);
+//     socket.bind ("tcp://*:5555");
 
-    while (true) {
-        zmq::message_t request;
+//     while (true) {
+//         zmq::message_t request;
 
-        //  Wait for next request from client
-        socket.recv (&request);
-        std::cout << "Received Hello" << std::endl;
+//         //  Wait for next request from client
+//         socket.recv (&request);
+//         std::cout << "Received Hello" << std::endl;
 
-        //  Do some 'work'
-        sleep(1);
+//         //  Do some 'work'
+//         sleep(1);
 
-        //  Send reply back to client
-        zmq::message_t reply (5);
-        memcpy (reply.data (), "World", 5);
-        socket.send (reply);
-    }
-    return 0;
-}
+//         //  Send reply back to client
+//         zmq::message_t reply (5);
+//         memcpy (reply.data (), "World", 5);
+//         socket.send (reply);
+//     }
+//     return 0;
+// }
 
 using namespace std;
 using namespace OPENGL;
@@ -84,7 +84,7 @@ struct cameraSample;
 
 ModelObj *testClass;
 
-vector<pair<GLint, GLint>> ladarPoints;
+vector<pair<GLfloat,GLfloat>> ladarPoints;
 map<pair<GLint,GLint>,GLfloat> testMap;
 Model *testM;
 
@@ -92,8 +92,14 @@ GLfloat FLOOR_RANGE=3, FLOOR_FALLOFF=0.1;
 GLuint FLOOR_DEPT_RES=128, FLOOR_WIDTH_RES=128;
 vec3 CAM_POS{0,5,15}, TARGET{0,0,0}, UP{0,1,0}; 
 mat4 modelCoords;
+GLfloat modelAngleY=0;
     int rotation=0;
 
+
+pair<GLfloat, GLfloat> generateLadarPointFromInputData(GLfloat distance, GLfloat angle)
+{
+    return pair<GLfloat,GLfloat>(distance*sin(angle-modelAngleY),distance*cos(angle-modelAngleY));
+}
 
 vec3 GenerateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, int FLOOR_WIDTH_RES, int FLOOR_DEPT_RES)
 {
@@ -237,7 +243,7 @@ Model *generateFlatTerrrain()
 
     return model;
 }
-void paintLadarPoints(vector<pair<GLint,GLint>> &ladarPoints, mat4 translation, Model* m)
+void paintLadarPoints(vector<pair<GLfloat, GLfloat>> &ladarPoints, mat4 translation, Model* m)
 {
     map<pair<GLint,GLint>,GLfloat> tempMap;
 
@@ -436,10 +442,10 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     paintLadarPoints(ladarPoints,modelCoords*rotationMatrix,testM);
     break;
     case 'g':
-    for(int i=1;i<8;i++)
+    for(int i=1;i<24;i++)
     {
-        pair<GLint, GLint>testPair{-12+i*24+(int)modelCoords.m[3],-12+i*12+(int)modelCoords.m[11]};
-        ladarPoints.push_back(testPair);
+        // pair<GLfloat,GLfloat>testPair{-12+i*24+modelCoords.m[3],-12+i*12+modelCoords.m[11]};
+        ladarPoints.push_back(generateLadarPointFromInputData(20+i*3,i/3.14));
     }
     break;
     case 'b':
@@ -451,76 +457,76 @@ void cameraManipulationInput(unsigned char key, int x, int y)
 	break;
     }
 }
-// int main(int argc, char *argv[])
-// {
+int main(int argc, char *argv[])
+{
     
-//     glutInit(&argc, argv);
-//     glutInitContextVersion(3, 2);
-//     glutInitWindowSize(1200, 1200);
-//     glutCreateWindow(WINDOW_NAME.c_str());
-//     glutDisplayFunc(display);
-//     glutRepeatingTimer(10);
-//     init();
-//     setUpCamera();
-//     vector<cameraSample> testVector{};
-//     for (int it = 0; it < 2000; it++)
-//     {
-//         cameraSample temp{rand()%FLOOR_DEPT_RES, rand()%FLOOR_DEPT_RES};
-//         testVector.push_back(temp);
-//     }
-//     // MarchingSquere *testClass = new MarchingSquere;
-//     // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
-//     testM = generateFlatTerrrain();
-//     // total = camMatrix * projectionMatrix * modelCoords;
-//     vec3 testCoords[testVector.size()];
-//     // for (int i = 0; i < testVector.size(); i++)
-//     // {
-//     //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
-//     //     testCoords[i].y = rand()%10;
-//     //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
-//     //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
-//     //     ladarPoints[temp]=testCoords[i].y;
-//     //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
-//     // }
-//     for(int i=1;i<5;i++)
-//     {
-//         pair<GLint, GLint>testPair{-12+i*24,-12+i*12};
-//         ladarPoints.push_back(testPair);
-//     }
-//     paintLadarPoints(ladarPoints,modelCoords,testM);
-//     // for(int i=0;i<50;i++)
-//     // {
-//     //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
-//     // }
+    glutInit(&argc, argv);
+    glutInitContextVersion(3, 2);
+    glutInitWindowSize(1200, 1200);
+    glutCreateWindow(WINDOW_NAME.c_str());
+    glutDisplayFunc(display);
+    glutRepeatingTimer(10);
+    init();
+    setUpCamera();
+    vector<cameraSample> testVector{};
+    for (int it = 0; it < 2000; it++)
+    {
+        cameraSample temp{rand()%FLOOR_DEPT_RES, rand()%FLOOR_DEPT_RES};
+        testVector.push_back(temp);
+    }
+    // MarchingSquere *testClass = new MarchingSquere;
+    // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
+    testM = generateFlatTerrrain();
+    // total = camMatrix * projectionMatrix * modelCoords;
+    vec3 testCoords[testVector.size()];
+    // for (int i = 0; i < testVector.size(); i++)
+    // {
+    //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
+    //     testCoords[i].y = rand()%10;
+    //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
+    //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
+    //     ladarPoints[temp]=testCoords[i].y;
+    //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
+    // }
+    for(int i=1;i<5;i++)
+    {
+        pair<GLfloat, GLfloat>testPair{-12+i*24,-12+i*12};
+        ladarPoints.push_back(testPair);
+    }
+    paintLadarPoints(ladarPoints,modelCoords,testM);
+    // for(int i=0;i<50;i++)
+    // {
+    //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
+    // }
 
-//     // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
-//     // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
-//     // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
-//     // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
-//     // for(it:testMap)
-//     // {
-//     //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
-//     // }
+    // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
+    // for(it:testMap)
+    // {
+    //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
+    // }
     
 
-//         // total= Ry(180);
-//         // total = T(-64,0,0);
-//         // CenterModel(testM);
-//         // testClass->generateModel();
-//         // cout << "test main" << endl;
-//         // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
-//         //             0.0f,5.0f,0.0f,
-//         //             10.0f,0.0f,0.0f};
-//         // vector<GLfloat> norm={0.0f,1.0f,0.0f};
-//         // vector<GLfloat> tex={0.0f,0.0f};
-//         // vector<GLuint> ind={0,3,6};
-//         // testM =LoadDataToModel(&vert[0],
-//         //                         &norm[0],
-//         //                         &tex[0],
-//         //                         NULL,
-//         //                         &ind[0],
-//         //                         3,
-//         //                         3
-//         // );
-//         glutMainLoop();
-// }
+        // total= Ry(180);
+        // total = T(-64,0,0);
+        // CenterModel(testM);
+        // testClass->generateModel();
+        // cout << "test main" << endl;
+        // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
+        //             0.0f,5.0f,0.0f,
+        //             10.0f,0.0f,0.0f};
+        // vector<GLfloat> norm={0.0f,1.0f,0.0f};
+        // vector<GLfloat> tex={0.0f,0.0f};
+        // vector<GLuint> ind={0,3,6};
+        // testM =LoadDataToModel(&vert[0],
+        //                         &norm[0],
+        //                         &tex[0],
+        //                         NULL,
+        //                         &ind[0],
+        //                         3,
+        //                         3
+        // );
+        glutMainLoop();
+}

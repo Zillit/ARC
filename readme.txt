@@ -20,6 +20,8 @@ libxmu-dev
 libxi-dev
 
 Connect over ssh
+To get to the server:  ssh -t -p 4444 arc@nhkim91.ddns.net
+
 At the car input the command: ssh -N -R 2222:localhost:22 -p 4444 arc@nhkim91.ddns.net
 
 At the user input the command: ssh -t -p 4444 arc@nhkim91.ddns.net ssh -p 2222 pi@localhost
