@@ -37,7 +37,7 @@ def styr_transmit(data):
 
 while True:
 	command = socket.recv_string() # Ta emot kommando via zmq
-	styr_transmit(int(command)) # Skicka till styr
+	#styr_transmit(int(command)) # Skicka till styr
 	#reply = sensor_transmit() # Läs sensordata 
 	reply = "hakka datta"
 	socket.send_string(reply) # Skicka vidare via zmq
