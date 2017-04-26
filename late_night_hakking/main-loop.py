@@ -33,6 +33,18 @@ for j in range(0,200): # fyll med 200 element
 	#kaowdokwaodw
 	#dlkplapwlda
 	#return angle
+def get_target(lista):
+	r = 0
+	theta = 0
+	for i in range(len(lista)):
+		dist = lista[i][0]
+		arg = lista[i][1]
+		if (dist > r and 45 < arg < 135):
+			r = dist
+			theta = arg
+	return theta
+			
+		
 
 	
 	
@@ -49,12 +61,12 @@ while True:
 				i += 1
 			else:
 				i=0
-				#target = get_target(lista2))
-				#print(target)
+				target = get_target(lista2))
+				print(target)
 				#spi_pair.send_string(str(target))
 				#reply = spi.pair.recv_string()
 				#print(reply)
-		except zmq.Again:
+		except zmq.Again: #EAGAIN?
 			break
 	
 	
@@ -82,4 +94,3 @@ while True:
 
 
 			
-wasd
