@@ -12,13 +12,13 @@ frontend.bind("tcp://*:2223")
 backend = context.socket(zmq.PUB)
 backend.bind("tcp://*:2224")
 
-#REP from PC
-backrep = context.socket(zmq.REP)
-backrep.bind("tcp://*:2225")
-
 #REQ to ARC
 frontreq = context.socket(zmq.REQ)
 frontreq.bind("tcp://*:2226")
+
+#REP from PC
+backrep = context.socket(zmq.REP)
+backrep.bind("tcp://*:2225")
 
 #Subscribe on everything
 frontend.setsockopt_string(zmq.SUBSCRIBE, '10001'.decode('ascii'))
