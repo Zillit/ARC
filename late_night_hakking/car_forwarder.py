@@ -8,7 +8,7 @@ context =  zmq.Context()
 
 #PUB to PC
 frontend = context.socket(zmq.PUB)
-frontend.connect("tcp://nhkim91@ddns:2223")
+frontend.connect("tcp://nhkim91.ddns.net:2223")
 
 #SUB from ARC
 #Implement autonomous part later
@@ -17,7 +17,7 @@ frontend.connect("tcp://nhkim91@ddns:2223")
 
 #REP to PC
 frontrep = context.socket(zmq.REP)
-frontrep.connect("tcp://nhkim91@ddns.net:2226")
+frontrep.connect("tcp://nhkim91.ddns.net:2226")
 
 #REP to ARC
 #Implement autonomous part later
@@ -39,12 +39,13 @@ def main():
 			command = frontrep.recv_string(zmq.DONTWAIT)
 			if command[:8] == 't_STYROR':
 				spi_req.send_string(command[8:])
-				data =  spi_req.recv_string(zmq.DONTWAIT)
+				data =  spi_req.recv_string()
 				print(data)
 				frontrep.send_string(command)
 				#wasd
 			elif command[:8] == 't_ARCCAR':
 				#wasd
+				print('Error')
 			else:
 				frontrep.send_string("Bad command mate")
 		except zmq.Again:
