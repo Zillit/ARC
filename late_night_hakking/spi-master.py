@@ -23,12 +23,11 @@ spi_sens.mode = 0b00
 #       istället för att krångla med PAIR      #
 ################################################
 context = zmq.Context()
-socket = context.socket(zmq.PAIR)
+socket = context.socket(zmq.REP)
 socket.connect("tcp://localhost:5558")
 
-
 def sensor_transmit():
-	resp = spi_sens.xfer2([0xFF,0,0,0,0],125000,1,8) # Ta emot 4 sensorvärden via spi
+	resp = spi_sens.xfer2([0xFF,0,0,0,0],250000,1,8) # Ta emot 4 sensorvärden via spi
 	data = str(resp[1])+str(resp[2])+str(resp[3])+str(resp[4]) # Gör om till en sträng
 	return data # Returnera
 	
@@ -39,12 +38,12 @@ def styr_transmit(data):
 while True:
 	command = sock.recv_string() # Ta emot kommando via zmq
 	styr_transmit(int(command)) # Skicka till styr
-	reply = sensor_transmit() # Läs sensordata 
+	#reply = sensor_transmit() # Läs sensordata 
+	reply = "hakka datta"
 	socket.send_string(reply) # Skicka vidare via zmq
-	#print(reply)
-	#time.sleep(0.1)
+	
 
- 
+
 
 
 
