@@ -4,17 +4,6 @@ from time import ctime
 import zmq
 from zmq import ssh
 import paramiko
-"""
-    Bridge test client:
-       So this one's going to be a doozy.
-       Connect to target via SSH and then connect to target:localhost:8283(DAVE) and listen
-        for the time messages.
-"""
-
-import zmq
-from zmq import ssh
-import paramiko #Ensure paramiko is installed ( and therefore pyCrypto as well )
-
 
 class Client(object):
 
@@ -28,7 +17,8 @@ class Client(object):
         self.s = self.ctx.socket(zmq.REQ)
         #self.s.setsockopt(zmq.SUBSCRIBE,'') #For now, subscribe to everything
         #To lazy to setup a new ssh pub/priv key so setting a throwaway password
-        self.tunnel = ssh.tunnel_connection(self.s, self.conn, ssh_server, password = "password")
+        # self.tunnel = ssh.tunnel_connection(self.s, self.conn, ssh_server, password = "password")
+        self.s.connect(self.conn)
 
     def receive(self):
         return self.s.recv()
@@ -37,8 +27,10 @@ class Client(object):
 
         while True:
             try:
+                self.s.send('Hey')
                 msg = self.receive()
                 print msg
+                sleep(2)
             except KeyboardInterrupt:
                 print "Interupt"
                 break
@@ -46,7 +38,8 @@ class Client(object):
 
 def main():
     #Don't need a reference, so just instantiate and let it block.
-    Client(None,None,"arc@nhkim91.ddns.net:2224").run()
+    # Client(None,None,"arc@nhkim91.ddns.net:2224").run()
+    Client(*, 5500).run()
 
 
 
