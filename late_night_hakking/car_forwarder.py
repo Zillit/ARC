@@ -34,6 +34,26 @@ spi_req.bind("tcp://*:5558")
 
 
 def main():
+<<<<<<< HEAD
+        while True:
+                try:
+                        command = frontrep.recv_string(zmq.DONTWAIT)
+                        if command[:8] == 't_STYROR':
+                                spi_req.send_string(command[8:])
+                                data =  spi_req.recv_string()
+                                print(data)
+                                frontrep.send_string(command)
+                                #wasd
+                        elif command[:8] == 't_ARCCAR':
+                                #wasd
+                                print('Error')
+                        else:
+                                frontrep.send_string("Bad command mate")
+                except zmq.Again:
+                        pass
+
+
+=======
 	print("MAIN")
 	while True:
 		try:
@@ -54,4 +74,5 @@ def main():
 			pass
 		
 		
+>>>>>>> 9e9936c6e4a34bf4a390f95626c2db6b18af49be
 if __name__ == '__main__': main()
