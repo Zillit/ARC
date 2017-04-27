@@ -7,11 +7,11 @@ import picamera
 
 import os
 
-camera = picamera.PiCamera()
+#camera = picamera.PiCamera()
 pygame.init()
 surface = pygame.display.set_mode((500,500))
-camera.start_preview()
-camera.stop_preview()
+#camera.start_preview()
+#camera.stop_preview()
 
 
 done = False
@@ -36,11 +36,11 @@ while not done:
         else:
             degrees = 30.0
         resp = spi.xfer2([int(degrees)],500000,5,8)
-        #print(int(degrees))
+        print(int(degrees))
         keys = pygame.key.get_pressed()
         count = False
-    resp = spi.xfer2([degrees],500000,5,8)
-    #degrees = 15;
+    resp = spi.xfer2([int(degrees)],500000,5,8)
+    degrees = 15;
 
     count = True;
 
@@ -57,8 +57,8 @@ while not done:
             degrees = 0.0
         resp = spi.xfer2([int(degrees)],500000,5,8)
         count = False
-    resp = spi.xfer2([degrees],500000,5,8)    
-    #degrees = 15;
+    resp = spi.xfer2([int(degrees)],500000,5,8)    
+    degrees = 15;
 
     count = True
     

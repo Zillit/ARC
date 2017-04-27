@@ -15,6 +15,8 @@ lista =""
 lista2 = []
 i=0
 distThresh = 40
+theta_min = 300
+theta_max = 40
 
 spi = spidev.SpiDev()
 spi.open(0,0)
@@ -30,19 +32,19 @@ def get_target(lista):
                 dist = int(lista[i][0])
                 arg = int(lista[i][1])
                 if (i==0):
-                        if ((45 > arg or arg > 315)  and last > distThresh and int(lista[1][0])>distThresh):
+                        if ((theta_max > arg or arg > theta_min)  and last > distThresh and int(lista[1][0])>distThresh):
                                 r = dist
                                 theta = arg
                 elif (i==maximus):
-                        if ((45 > arg or arg > 315) and first > distThresh and int(lista[maximus-1][0])>distThresh):
+                        if ((theta_max > arg or arg > theta_min) and first > distThresh and int(lista[maximus-1][0])>distThresh):
                                 r = dist
                                 theta = arg
                 elif (i != 0 and i !=maximus):
-                        if (dist > r and (45 > arg or arg > 315) and int(lista[i-1][0])>distThresh and int(lista[i+1][0])>distThresh):
+                        if (dist > r and (theta_max > arg or arg > theta_min) and int(lista[i-1][0])>distThresh and int(lista[i+1][0])>distThresh):
                                 r = dist
                                 theta = arg
                         
-        print(r,theta)
+        #print(r,theta)
         return theta
 
 
@@ -55,16 +57,18 @@ while True:
                         angle = lista[lista.find(":")+1:lista.find("\n")-1] 
                         lista2.append([dist, angle])
                         lista = lista[lista.find("\n")+1:] 
-                        if i < 100:
+                        if i < 60:
                                 i += 1
                         else:
                                 angular = get_target(lista2)
-                                print(angular)
-                                #spi.xfer2([int(0xF1, 10)],250000,1,8)
+                                #print(angular)
+                                spi.xfer2([141],250000,1,8)
                                 if (angular > 315):
-                                        angular -= 315
+                                        angular -= theta_min
                                 else:
-                                        angular + 45
+                                        angular += (90-theta_max)
+                                angular = 90 - angular
+                                #print(angulate/3)
                                 spi.xfer2([int(angular/3)],250000,1,8)
                                 i = 0
                                 lista2= []
