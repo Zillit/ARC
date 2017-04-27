@@ -7,7 +7,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
-#include <raspicam/raspicam_cv.h>
+//#include <raspicam/raspicam_cv.h>
 
 using namespace std;
 using namespace cv; 
@@ -17,9 +17,12 @@ using namespace cv;
  */
 struct Colored_Object
 {
-	double XPosL = 0;
-	double XPosR = 0;
-	double YPos = 0;
+	int XPosL = 0;
+	int XPosR = 0;
+	int YPos = 0;
+
+	double angle_close();
+	double angle_far();
 };
 
 /*
