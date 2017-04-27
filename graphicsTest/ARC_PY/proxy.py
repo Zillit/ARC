@@ -12,9 +12,9 @@ USERrep=context.socket(zmq.DEALER)
 USERrep.bind("tcp://*:5550")
 #Setup the communication from car to user
 ARCsub=context.socket(zmq.SUB)
-ARCsub.bind("tcp://*:4555")
+ARCsub.bind("tcp://*:4550")
 ARCpub=context.socket(zmq.PUB)
-ARCpub.bind("tcp://*:4550")
+ARCpub.bind("tcp://*:4555")
 
 #Subscribe to everything so that all is passed on
 ARCsub.setsockopt(zmq.SUBSCRIBE, b'')
