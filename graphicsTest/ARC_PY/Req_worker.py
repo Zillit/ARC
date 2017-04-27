@@ -47,7 +47,7 @@ class Server(object):
 
 
 def main():
-    Server(None,None,"arc@nhkim91.ddns.net:2223").run()
+    Server(None,None,"arc@nhkim91.ddns.net:2225").run()
 
 
 

@@ -4,8 +4,19 @@ from time import ctime
 import zmq
 from zmq import ssh
 import paramiko
+"""
+    Bridge test client:
+       So this one's going to be a doozy.
+       Connect to target via SSH and then connect to target:localhost:8283(DAVE) and listen
+        for the time messages.
+"""
 
-class Server(object):
+import zmq
+from zmq import ssh
+import paramiko #Ensure paramiko is installed ( and therefore pyCrypto as well )
+
+
+class Client(object):
 
     def __init__(self, host = None, port = None, ssh_server = None):
 
@@ -15,34 +26,27 @@ class Server(object):
         #Kick off 0MQ build up
         self.ctx = zmq.Context()
         self.s = self.ctx.socket(zmq.REQ)
-        self.tunnel=ssh.tunnel_connection(self.s, self.conn, ssh_server, password = "stavarett")
-        self.s.connect(self.conn)
-    def send(self, msg):
-        """
-            Ecapsulate send in case I want/need to overload it
-        """
-        return self.s.send(msg)
+        #self.s.setsockopt(zmq.SUBSCRIBE,'') #For now, subscribe to everything
+        #To lazy to setup a new ssh pub/priv key so setting a throwaway password
+        self.tunnel = ssh.tunnel_connection(self.s, self.conn, ssh_server, password = "password")
 
+    def receive(self):
+        return self.s.recv()
 
     def run(self):
+
         while True:
             try:
-                msg = "%s" % ctime()
-                self.send(msg)
-                message=self.recv()
-                print msg + message
+                msg = self.receive()
+                print msg
             except KeyboardInterrupt:
-                print "Interupted!"
+                print "Interupt"
                 break
-
-            sleep(2)
-
-
 
 
 def main():
     #Don't need a reference, so just instantiate and let it block.
-    Server(None,None,"arc@nhkim91.ddns.net:2224").run()
+    Client(None,None,"arc@nhkim91.ddns.net:2224").run()
 
 
 
