@@ -11,38 +11,62 @@
 
 using namespace std;
 using namespace cv; 
-//using namespace ARC;
 
 /*
- * Calculate number of pixel to green objekt in picture
- * in even spaced coloums
+ * An object with a color
  */
-vector<int> detection_of_green(Mat camera_img);
+struct Colored_Object
+{
+	double XPosL = 0;
+	double XPosR = 0;
+	double YPos = 0;
+};
+
+/*
+ * Detect colored objekt in image
+ */
+Mat detection_of_color(Mat camera_img, int* lowHSV, int* highHSV);
 
 /* 
- * Degre from bottome of camera verticaly
+ * Detect lines in image
  */
-double vertical_degre(Mat imgOriginal, int n_pixels);
+Mat detect_lines(Mat camera_img);
 
-/* 
- * Degree from the center of the camera horizontoly
- */ 
-double horizontol_degre(int measured_cols);
+/*
+ * Calculate pixels to a obstical
+ */
+vector<Colored_Object> object_pos(Mat imgThresholded);
 
 /*
  * Calculate the distace to a obstical
  */
-double y_distance(double vertical_degree);
+vector<double> pixel_to_lenght(vector<int> pixels);
+
+
+/* 
+ * Degre from bottome of camera verticaly
+ */
+//double vertical_degre(Mat imgOriginal, int n_pixels);
+
+/* 
+ * Degree from the center of the camera horizontoly
+ */ 
+//double horizontol_degre(int measured_cols);
+
+/*
+ * Calculate the distace to a obstical
+ */
+//double y_distance(double vertical_degree);
 
 /*
  * Return a vector of distances to obsticals
  * in diffrent directions
  */
-vector<double> y_distance_vector(Mat camera_img);
+//vector<double> y_distance_vector(Mat camera_img);
 
 /*
  * Calculate where in the picture the distance mesurement hapens
  */
-vector<int> cols_x_value();
+//vector<int> cols_x_value();
 
 #endif

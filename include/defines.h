@@ -34,6 +34,8 @@ namespace ARC
     const int PIXEL_WIDTH = 640;
     const int MESSURED_COL_RIGHT_LEFT_FROM_CENTER = 20;
     const int CANNY_THRE = 60;
+    const int MAX_NUM_OBJECTS = 10;
+    const int MIN_AREA = 100;
 
 }
 

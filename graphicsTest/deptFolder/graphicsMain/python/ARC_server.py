@@ -5,11 +5,11 @@ import zmq
 context =  zmq.Context()
 
 #XSUB from ARC
-frontend = context.socket(zmq.SUB)
+frontend = context.socket(zmq.REP)
 frontend.bind("tcp://*:2223")
 
 #XPUB to PC
-backend = context.socket(zmq.PUB)
+backend = context.socket(zmq.REQ)
 backend.bind("tcp://*:2224")
 
 #REQ to ARC
@@ -20,9 +20,7 @@ frontreq.bind("tcp://*:2226")
 backrep = context.socket(zmq.REP)
 backrep.bind("tcp://*:2225")
 
-#Subscribe on everything
-frontend.setsockopt_string(zmq.SUBSCRIBE, '10001'.decode('ascii'))
-
+poller = zmq.Poller()
 
 def main():
         print("MAIN")

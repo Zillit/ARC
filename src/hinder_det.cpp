@@ -10,11 +10,101 @@ using namespace std;
 using namespace cv; 
 using namespace ARC;
 
+
+Mat detection_of_color(Mat camera_img, int lowHSV[3], int highHSV[3])
+{
+	Mat imgHSV;
+
+	cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+	Mat imgThresholded;
+
+	inRange(imgHSV, Scalar(lowHSV[0], lowHSV[1], lowHSV[2]), Scalar(highHSV[0], highHSV[1], highHSV[2]), imgThresholded); //Threshold the image
+
+	//morphological opening (remove small objects from the foreground)
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+
+	//morphological closing (fill small holes in the foreground)
+	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+	
+	return imgThresholded;
+}
+
+
+Mat detect_lines(Mat camera_img)
+{
+	Mat detect;
+	Mat dst;
+
+	cvtColor(camera_img, detect, COLOR_BGR2GRAY);
+
+	blur(detect, detect, Size(3,3));
+
+	Canny(detect, detect, CANNY_THRE, 3*CANNY_THRE, 3);
+
+	dst = Scalar::all(0);
+
+	camera_img.copyTo(dst, detect);
+	
+	return dst;
+}
+
+vector<Colored_Object> object_pos(Mat imgThresholded)
+{
+
+    vector< vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    //find contours of filtered image using openCV findContours function
+    findContours(imgThresholded, contours, hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+    
+    int numObjects = contours.size();
+	vector<Colored_Object> objects(numObjects);
+
+	/// Approximate contours to polygons + get bounding rects and circles
+	vector<vector<Point> > contours_poly( numObjects );
+	vector<Rect> boundRect( numObjects );
+
+	
+	for( int i = 0; i < numObjects; i++ )
+    { 
+		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+        boundRect[i] = boundingRect( Mat(contours_poly[i]) );
+    }
+
+	for(int index = 0; index < numObjects && index < MAX_NUM_OBJECTS; index++)
+	{
+          double area = boundRect[index].area();
+          if (area > MIN_AREA)
+          {
+               objects[index].XPosR = boundRect[index].br().x;
+               objects[index].XPosL = boundRect[index].tl().x;
+               objects[index].YPos = boundRect[index].br().y;
+          }
+     }
+	 return objects;
+}
+
+
+vector<double> pixel_to_lenght(vector<int> pixels)
+{
+	vector<double> lenght(COLS_TO_MEASURE, 0);
+	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
+	double pixel_per_angel = VERTICAL_FOV/PIXEL_HEIGHT;
+
+	for(int n = 0; n < COLS_TO_MEASURE; n++)
+	{
+		lenght[n] =  HEIGHT_OF_CAMERA * tan(phi + (pixel_per_angel * pixels[n]));
+	}
+	return lenght;
+}
+
 /*
 vector<int> width_between_measure()
 {
-	int half_pixel_width{PIXEL_WIDTH/2};
-	int pixel_width{COLS_TO_MEASURE/PIXEL_WIDTH};
+	int half_pixel_width = PIXEL_WIDTH/2;
+	int pixel_width = COLS_TO_MEASURE/PIXEL_WIDTH;
 	vector<int> messure_pixel_width(COLS_TO_MEASURE);
 	
 	for(int i; i < COLS_TO_MEASURE; i++)
@@ -23,7 +113,7 @@ vector<int> width_between_measure()
 	}
 }
 	*/
-	
+/*	
 vector<int> cols_x_value()
 {
 	int width_between_measure{PIXEL_WIDTH / (COLS_TO_MEASURE - 1)};
@@ -45,56 +135,10 @@ vector<int> cols_x_value()
 	
 	return x_value;
 }
+*/
 
-vector<int> detection_of_green(Mat camera_img)
-{
 
-	int width_between_measure(PIXEL_WIDTH/COLS_TO_MEASURE);
-	vector<int> pixel_height_to_with (COLS_TO_MEASURE, PIXEL_HEIGHT);
-
-	Mat imgHSV;
-
-	cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
-	Mat imgThresholded;
-
-	inRange(imgHSV, Scalar(ILOWH, ILOWS, ILOWV), Scalar(IHIGHH, IHIGHS, IHIGHV), imgThresholded); //Threshold the image
-
-	//morphological opening (remove small objects from the foreground)
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-
-	//morphological closing (fill small holes in the foreground)
-	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-	Moments picture_moments{moments(imgThresholded)};
-	double pixel_area{picture_moments.m00};
-	double max_pixel_height{PIXEL_HEIGHT/2 + 
-		ANGEL_OF_CAMERA*PIXEL_HEIGHT/VERTICAL_FOV};
-
-	if(pixel_area > 10000)
-	{
-		for(int count_cols{1}; count_cols <= COLS_TO_MEASURE; count_cols++){
-
-			for(int y{};y <= max_pixel_height; y += 10) 
-			{
-				if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width_between_measure) != 0) 
-				{ 
-					pixel_height_to_with[count_cols - 1] = y;
-					break;
-				}
-				else if (y == PIXEL_HEIGHT )
-				{
-					pixel_height_to_with[count_cols-1] = PIXEL_HEIGHT;
-				}
-			}
-		}
-	}
-
-	return pixel_height_to_with;
-}
-
+/*
 double vertical_degre(Mat imgOriginal, int n_pixels) 
 {  
     return (double) VERTICAL_FOV*n_pixels/PIXEL_HEIGHT;
@@ -127,46 +171,3 @@ vector<double> y_distance_vector(Mat camera_img)
     }
     return distance;
 }
-
-/*
-int main()
-{
-    VideoCapture cap(0); //capture the video from web cam
-
-//       if ( !cap.isOpened() )  // if not success, exit program
-//       {
-//         cout << "Cannot open the web cam" << endl;
-//         return -1;
-//         }
-
-//     while (true)
-//        {
-//           Mat imgOriginal;
-
-//           bool bSuccess = cap.read(imgOriginal); // read a new frame from video
-
-//             if (!bSuccess) //if not success, break loop
-//             {
-//                 cout << "Cannot read a frame from video stream" << endl;
-//                 break;
-//             }
-
-//             imshow("Original", imgOriginal);
-//             waitKey(30);
-
-
-//         vector<int> a = detection_of_green(imgOriginal, 15);
-
-
-//         for(int i{}; i < 15; ++i)
-//         {
-//             if (a[i] == 0) return -1;
-//             cout << vertical_degre(imgOriginal, a[i]) << " ";
-//         }
-//             cout << endl;
-
-//        }
-
-       return 0;
-}
-*/

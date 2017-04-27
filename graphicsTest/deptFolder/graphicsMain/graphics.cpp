@@ -442,19 +442,19 @@ int main(int argc, char *argv[])
     rc = zmq_connect(frontreq, "tcp://nhkim91.ddns.net:2225");
     assert(rc == 0);
 
-    while (true)
-    {
-        cout << "before connect request" << endl;
-        zmq::message_t request;
+    // while (true)
+    // {
+    //     cout << "before connect request" << endl;
+    //     zmq::message_t request;
 
-        //  Wait for next request from client
-        frontend.recv(&request);
-        cout << "after connect request" << endl;
-        std::cout << "Received Hello" << std::endl;
+    //     //  Wait for next request from client
+    //     frontend.recv(&request);
+    //     cout << "after connect request" << endl;
+    //     std::cout << "Received Hello" << std::endl;
 
-        zmq::message_t reply(5);
-        memcpy(reply.data(), "World", 5);
-        frontend.send(reply);
+    //     zmq::message_t reply(5);
+    //     memcpy(reply.data(), "World", 5);
+    //     frontend.send(reply);
 
         glutInit(&argc, argv);
         glutInitContextVersion(3, 2);
@@ -525,5 +525,5 @@ int main(int argc, char *argv[])
         // );
         glutMainLoop();
         //  Send reply back to client
-    }
+    // }
 }

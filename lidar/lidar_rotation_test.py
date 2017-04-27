@@ -25,17 +25,16 @@ def list_magic(lista):
 
 
 while True:
-    data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
-    if data:
-        lista += data 
-    while lista.find("\n") != -1:
-		dist = lista[:lista.find(":")]	
-		angle = lista[lista.find(":")+1:lista.find("\n")-1] 
-        lista2.append([dist, angle])
-        lista = lista[lista.find("\n")+1:] 
-    if i < 1000:
-		i += 1
-	else:
-		list_magic(lista)
-		break
-		
+        data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
+        if data:
+                lista += data 
+                while lista.find("\n") != -1:
+                        dist = lista[:lista.find(":")]
+                        angle = lista[lista.find(":")+1:lista.find("\n")-1] 
+                        lista2.append([dist, angle])
+                        lista = lista[lista.find("\n")+1:] 
+                        if i < 1000:
+                                i += 1
+                        else:
+                                list_magic(lista)
+                        break

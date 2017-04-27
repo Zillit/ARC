@@ -39,7 +39,7 @@ def get_target(lista):
 	for i in range(len(lista)):
 		dist = lista[i][0]
 		arg = lista[i][1]
-		if (dist > r and 45 < arg < 135):
+		if (dist > r and (arg < 45 or arg > 315)):
 			r = dist
 			theta = arg
 	return theta
@@ -56,7 +56,7 @@ while True:
 		try:
 			rxdata = lidar_sub.recv_string(zmq.DONTWAIT)
 			id, distance, angle = rxdata.split()
-			lidar_list.[i] = [distance, angle]
+			lidar_list[i] = [distance, angle]
 			if i < 199:
 				i += 1
 			else:
