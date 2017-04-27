@@ -60,7 +60,7 @@ vector<Colored_Object> object_pos(Mat imgThresholded)
     findContours(imgThresholded, contours, hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
     
     int numObjects = contours.size();
-	vector<Colored_Object> objects(numObjects);
+	vector<Colored_Object> objects;
 
 	/// Approximate contours to polygons + get bounding rects and circles
 	vector<vector<Point> > contours_poly( numObjects );
@@ -78,15 +78,36 @@ vector<Colored_Object> object_pos(Mat imgThresholded)
           double area = boundRect[index].area();
           if (area > MIN_AREA)
           {
-               objects[index].XPosR = boundRect[index].br().x;
-               objects[index].XPosL = boundRect[index].tl().x;
-               objects[index].YPos = boundRect[index].br().y;
+			  Colored_Object tmp = {boundRect[index].tl().x, boundRect[index].br().x, boundRect[index].br().y};
+			  objects.push_back(tmp);
           }
      }
 	 return objects;
 }
 
+double Colored_Object::angle_close()
+{
+	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosL - (PIXEL_WIDTH/2));
+	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosR - (PIXEL_WIDTH/2));
 
+	if (XPosL >= 320)
+	{
+		return left_angle;
+	}
+	else if (XPosR < 320)
+	{
+		return 	right_angle;
+	}
+	else if (abs(left_angle) < abs(right_angle)) 
+	{
+		return left_angle;
+	}
+	else
+	{ 
+	return right_angle;
+	}
+}
+/*
 vector<double> pixel_to_lenght(vector<int> pixels)
 {
 	vector<double> lenght(COLS_TO_MEASURE, 0);
@@ -99,7 +120,7 @@ vector<double> pixel_to_lenght(vector<int> pixels)
 	}
 	return lenght;
 }
-
+*/
 /*
 vector<int> width_between_measure()
 {
@@ -171,3 +192,4 @@ vector<double> y_distance_vector(Mat camera_img)
     }
     return distance;
 }
+*/
