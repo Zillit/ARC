@@ -26,7 +26,8 @@ Mat detect_lines(Mat camera_img);
 /*
  * Calculate pixels to a obstical
  */
-vector<int> vertical_pixels_to_with(Mat imgThresholded);
+vector<int> pixelX(Mat imgThresholded);
+vector<int> pixelY(Mat imgThresholded);
 
 /*
  * Calculate the distace to a obstical

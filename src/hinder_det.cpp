@@ -52,9 +52,35 @@ Mat detect_lines(Mat camera_img)
 }
 
 
-vector<int> vertical_pixels_to_with(Mat imgThresholded)
+vector<int> pixelY(Mat imgThresholded)
 {
-	
+    vector<double> posY(10,0);
+
+    vector< vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    //find contours of filtered image using openCV findContours function
+    findContours(imgThresholded, contours,hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+
+    if (hierarchy.size() > 0) {
+        int numObjects = hierarchy.size();
+        //if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
+        if(numObjects<10){
+            for (int index = 0; index >= 0; index = hierarchy[index][0]) {
+
+                Moments oMoments = moments((cv::Mat)contours[index]);
+                double area = oMoments.m00;
+                double cy{oMoments.m01};
+                if (area > 1000)
+                {
+                    //calculate the position of the ball
+                    posY[index] = cy / area;
+                }
+            }
+        }
+    }
+    return posY;
+
+/*	
 	int width_between_measure = PIXEL_WIDTH/COLS_TO_MEASURE;	
 	vector<int> pixel_height_to_with (COLS_TO_MEASURE, 0);
 
@@ -82,6 +108,36 @@ vector<int> vertical_pixels_to_with(Mat imgThresholded)
 	}
 
 	return pixel_height_to_with;
+    */
+}
+
+vector<int> pixelX(Mat imgThresholded)
+{
+    vector<double> posX(10,0);
+
+    vector< vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    //find contours of filtered image using openCV findContours function
+    findContours(imgThresholded, contours,hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+
+    if (hierarchy.size() > 0) {
+        int numObjects = hierarchy.size();
+        //if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
+        if(numObjects<10){
+            for (int index = 0; index >= 0; index = hierarchy[index][0]) {
+
+                Moments oMoments = moments((cv::Mat)contours[index]);
+                double area = oMoments.m00;
+                double cx{oMoments.m10};
+                if (area > 1000)
+                {
+                    //calculate the position of the ball
+                    posX[index] = cx / area;
+                }
+            }
+        }
+    }
+    return posX;
 }
 
 
