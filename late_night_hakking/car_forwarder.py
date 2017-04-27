@@ -32,14 +32,12 @@ spi_req.bind("tcp://*:5558")
 #Subscribe on everything
 #arc_sub.setsockopt_string(zmq.SUBSCRIBE, '10001'.decode('ascii'))
 
-bool send=True
 
 def main():
+	print("MAIN")
 	while True:
 		try:
-			if send:
-    				frontend.send_string("test string")
-					send=False
+			frontend.send_string("test string")
 			command = frontrep.recv_string(zmq.DONTWAIT)
 			if command[:8] == 't_STYROR':
 				spi_req.send_string(command[8:])

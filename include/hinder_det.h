@@ -11,7 +11,16 @@
 
 using namespace std;
 using namespace cv; 
-//using namespace ARC;
+
+/*
+ * An object with a color
+ */
+struct Colored_Object
+{
+	double XPosL = 0;
+	double XPosR = 0;
+	double YPos = 0;
+};
 
 /*
  * Detect colored objekt in image
@@ -26,8 +35,7 @@ Mat detect_lines(Mat camera_img);
 /*
  * Calculate pixels to a obstical
  */
-vector<int> pixelX(Mat imgThresholded);
-vector<int> pixelY(Mat imgThresholded);
+vector<Colored_Object> object_pos(Mat imgThresholded);
 
 /*
  * Calculate the distace to a obstical

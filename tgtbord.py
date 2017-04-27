@@ -39,8 +39,8 @@ while not done:
         #print(int(degrees))
         keys = pygame.key.get_pressed()
         count = False
-    resp = spi.xfer2([15],500000,5,8)
-    degrees = 15;
+    resp = spi.xfer2([degrees],500000,5,8)
+    #degrees = 15;
 
     count = True;
 
@@ -57,8 +57,8 @@ while not done:
             degrees = 0.0
         resp = spi.xfer2([int(degrees)],500000,5,8)
         count = False
-    resp = spi.xfer2([15],500000,5,8)    
-    degrees = 15;
+    resp = spi.xfer2([degrees],500000,5,8)    
+    #degrees = 15;
 
     count = True
     

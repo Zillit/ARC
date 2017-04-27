@@ -51,93 +51,39 @@ Mat detect_lines(Mat camera_img)
 	return dst;
 }
 
-
-vector<int> pixelY(Mat imgThresholded)
+vector<Colored_Object> object_pos(Mat imgThresholded)
 {
-    vector<double> posY(10,0);
 
     vector< vector<Point> > contours;
     vector<Vec4i> hierarchy;
     //find contours of filtered image using openCV findContours function
-    findContours(imgThresholded, contours,hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+    findContours(imgThresholded, contours, hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+    
+    int numObjects = contours.size();
+	vector<Colored_Object> objects(numObjects);
 
-    if (hierarchy.size() > 0) {
-        int numObjects = hierarchy.size();
-        //if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
-        if(numObjects<10){
-            for (int index = 0; index >= 0; index = hierarchy[index][0]) {
+	/// Approximate contours to polygons + get bounding rects and circles
+	vector<vector<Point> > contours_poly( numObjects );
+	vector<Rect> boundRect( numObjects );
 
-                Moments oMoments = moments((cv::Mat)contours[index]);
-                double area = oMoments.m00;
-                double cy{oMoments.m01};
-                if (area > 1000)
-                {
-                    //calculate the position of the ball
-                    posY[index] = cy / area;
-                }
-            }
-        }
-    }
-    return posY;
-
-/*	
-	int width_between_measure = PIXEL_WIDTH/COLS_TO_MEASURE;	
-	vector<int> pixel_height_to_with (COLS_TO_MEASURE, 0);
-
-
-	Moments picture_moments = moments(imgThresholded);
-	double pixel_area = picture_moments.m00;
-	double max_pixel_height = PIXEL_HEIGHT/2 + 
-		ANGEL_OF_CAMERA*PIXEL_HEIGHT/VERTICAL_FOV;
-
-	if(pixel_area > 10000)
-	{
 	
-		for(int count_cols = 1; count_cols <= COLS_TO_MEASURE; count_cols++)
-		{
-
-			for(int y = 0;y <= max_pixel_height; y += 10) 
-			{
-				if(imgThresholded.at<uchar>(PIXEL_HEIGHT - y, count_cols*width_between_measure) != 0) 
-				{ 
-					pixel_height_to_with[count_cols - 1] = y;
-					break;
-				}
-			}
-		}
-	}
-
-	return pixel_height_to_with;
-    */
-}
-
-vector<int> pixelX(Mat imgThresholded)
-{
-    vector<double> posX(10,0);
-
-    vector< vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    //find contours of filtered image using openCV findContours function
-    findContours(imgThresholded, contours,hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
-
-    if (hierarchy.size() > 0) {
-        int numObjects = hierarchy.size();
-        //if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
-        if(numObjects<10){
-            for (int index = 0; index >= 0; index = hierarchy[index][0]) {
-
-                Moments oMoments = moments((cv::Mat)contours[index]);
-                double area = oMoments.m00;
-                double cx{oMoments.m10};
-                if (area > 1000)
-                {
-                    //calculate the position of the ball
-                    posX[index] = cx / area;
-                }
-            }
-        }
+	for( int i = 0; i < numObjects; i++ )
+    { 
+		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+        boundRect[i] = boundingRect( Mat(contours_poly[i]) );
     }
-    return posX;
+
+	for(int index = 0; index < numObjects && index < MAX_NUM_OBJECTS; index++)
+	{
+          double area = boundRect[index].area();
+          if (area > MIN_AREA)
+          {
+               objects[index].XPosR = boundRect[index].br().x;
+               objects[index].XPosL = boundRect[index].tl().x;
+               objects[index].YPos = boundRect[index].br().y;
+          }
+     }
+	 return objects;
 }
 
 
@@ -225,46 +171,3 @@ vector<double> y_distance_vector(Mat camera_img)
     }
     return distance;
 }
-
-/*
-int main()
-{
-    VideoCapture cap(0); //capture the video from web cam
-
-//       if ( !cap.isOpened() )  // if not success, exit program
-//       {
-//         cout << "Cannot open the web cam" << endl;
-//         return -1;
-//         }
-
-//     while (true)
-//        {
-//           Mat imgOriginal;
-
-//           bool bSuccess = cap.read(imgOriginal); // read a new frame from video
-
-//             if (!bSuccess) //if not success, break loop
-//             {
-//                 cout << "Cannot read a frame from video stream" << endl;
-//                 break;
-//             }
-
-//             imshow("Original", imgOriginal);
-//             waitKey(30);
-
-
-//         vector<int> a = detection_of_green(imgOriginal, 15);
-
-
-//         for(int i{}; i < 15; ++i)
-//         {
-//             if (a[i] == 0) return -1;
-//             cout << vertical_degre(imgOriginal, a[i]) << " ";
-//         }
-//             cout << endl;
-
-//        }
-
-       return 0;
-}
-*/
