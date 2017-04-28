@@ -7,7 +7,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
-//#include <raspicam/raspicam_cv.h>
+#include <raspicam/raspicam_cv.h>
 
 using namespace std;
 using namespace cv; 
@@ -27,7 +27,8 @@ class Colored_Object
 	virtual ~Colored_Object() {}
 	double angle_close();
 	double angle_far();
-	double distance();
+	double ydistance();
+	double distance(double angle);
 };
 
 /*

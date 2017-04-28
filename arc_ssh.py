@@ -9,9 +9,9 @@ import thread
 context = zmq.Context()
 
 USERrep = context.socket(zmq.REP)
-zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","pi@nhkim91.ddns.net:2222")
+zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444","stavarett")
 ARCpub = context.socket(zmq.PUB)
-zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","pi@nhkim91.ddns.net:2222")
+zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444","stavarett")
 
 ARCpub.setsockopt(zmq.SNDHWM,1000)
 
