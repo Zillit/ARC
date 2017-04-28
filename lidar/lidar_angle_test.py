@@ -16,7 +16,7 @@ lista2 = []
 i=0
 distThresh = 40
 theta_min = 300
-theta_max = 40
+theta_max = 60
 
 spi = spidev.SpiDev()
 spi.open(0,0)
@@ -32,15 +32,24 @@ def get_target(lista):
                 dist = int(lista[i][0])
                 arg = int(lista[i][1])
                 if (i==0):
-                        if ((theta_max > arg or arg > theta_min)  and last > distThresh and int(lista[1][0])>distThresh):
+                        if ((theta_max > arg or arg > theta_min)  and last > distThresh and int(lista[1][0])>distThresh and int(lista[maximus-1][0]) > distThresh and int(lista[2][0]) > distThresh):
+                                r = dist
+                                theta = arg
+                                if (i==0):
+                elif (i==1):
+                        if ((theta_max > arg or arg > theta_min)  and int(lista[3][0]) > distThresh and int(lista[0][0])>distThresh and int(lista[maximus][0]) > distThresh and int(lista[2][0]) > distThresh):
                                 r = dist
                                 theta = arg
                 elif (i==maximus):
-                        if ((theta_max > arg or arg > theta_min) and first > distThresh and int(lista[maximus-1][0])>distThresh):
+                        if ((theta_max > arg or arg > theta_min) and first > distThresh and int(lista[maximus-1][0])>distThresh and int(lista[maximus-2][0]) > distThresh) and int(lista[1][0]) > distThresh:
+                                r = dist
+                                theta = arg
+                elif (i==maximus-1):
+                        if ((theta_max > arg or arg > theta_min) and first > distThresh and int(lista[maximus-2][0]) > distThresh and int(lista[maximus-3][0])>distThresh and int(lista[maximus][0]) > distThresh ):
                                 r = dist
                                 theta = arg
                 elif (i != 0 and i !=maximus):
-                        if (dist > r and (theta_max > arg or arg > theta_min) and int(lista[i-1][0])>distThresh and int(lista[i+1][0])>distThresh):
+                        if (dist > r and (theta_max > arg or arg > theta_min) and int(lista[i-1][0])>distThresh and int(lista[i+1][0])>distThresh and int(lista[i-2][0])>distThresh and int(lista[i+2][0])>distThresh ):
                                 r = dist
                                 theta = arg
                         
@@ -57,12 +66,12 @@ while True:
                         angle = lista[lista.find(":")+1:lista.find("\n")-1] 
                         lista2.append([dist, angle])
                         lista = lista[lista.find("\n")+1:] 
-                        if i < 60:
+                        if i < 150:
                                 i += 1
                         else:
                                 angular = get_target(lista2)
                                 #print(angular)
-                                spi.xfer2([141],250000,1,8)
+                                spi.xfer2([139],250000,1,8)
                                 if (angular > 315):
                                         angular -= theta_min
                                 else:
