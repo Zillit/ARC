@@ -15,14 +15,19 @@ using namespace cv;
 /*
  * An object with a color
  */
-struct Colored_Object
+class Colored_Object
 {
+	private:
 	int XPosL = 0;
 	int XPosR = 0;
 	int YPos = 0;
 
+	public:
+	Colored_Object(int xpl, int xpr, int yp) : XPosL{xpl}, XPosR{xpr} ,YPos{yp} {}
+	virtual ~Colored_Object() {}
 	double angle_close();
 	double angle_far();
+	double distance();
 };
 
 /*
