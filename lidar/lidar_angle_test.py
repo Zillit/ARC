@@ -15,12 +15,16 @@ lista =""
 lista2 = []
 i=0
 distThresh = 40
-theta_min = 300
-theta_max = 60
+theta_min = 310
+theta_max = 40
 
 spi = spidev.SpiDev()
 spi.open(0,0)
 spi.mode = 0b00
+
+spi_sens = spidev.SpiDev()
+spi_sens.open(0,1) # Har inte testat att CS1 funkar men det borde den göra
+spi_sens.mode = 0b00
 
 def get_target(lista):
         r = 0
@@ -35,7 +39,6 @@ def get_target(lista):
                         if ((theta_max > arg or arg > theta_min)  and last > distThresh and int(lista[1][0])>distThresh and int(lista[maximus-1][0]) > distThresh and int(lista[2][0]) > distThresh):
                                 r = dist
                                 theta = arg
-                                if (i==0):
                 elif (i==1):
                         if ((theta_max > arg or arg > theta_min)  and int(lista[3][0]) > distThresh and int(lista[0][0])>distThresh and int(lista[maximus][0]) > distThresh and int(lista[2][0]) > distThresh):
                                 r = dist
@@ -79,6 +82,8 @@ while True:
                                 angular = 90 - angular
                                 #print(angulate/3)
                                 spi.xfer2([int(angular/3)],250000,1,8)
+                                resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8)
+                                print(resp)
                                 i = 0
                                 lista2= []
                                 break
