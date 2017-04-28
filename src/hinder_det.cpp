@@ -51,6 +51,7 @@ Mat detect_lines(Mat camera_img)
 	return dst;
 }
 
+
 vector<Colored_Object> object_pos(Mat imgThresholded)
 {
 
@@ -78,7 +79,7 @@ vector<Colored_Object> object_pos(Mat imgThresholded)
           double area = boundRect[index].area();
           if (area > MIN_AREA)
           {
-			  Colored_Object tmp = {boundRect[index].tl().x, boundRect[index].br().x, boundRect[index].br().y};
+			  Colored_Object tmp(boundRect[index].tl().x, boundRect[index].br().x, boundRect[index].br().y);
 			  objects.push_back(tmp);
           }
      }
@@ -90,15 +91,7 @@ double Colored_Object::angle_close()
 	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosL - (PIXEL_WIDTH/2));
 	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosR - (PIXEL_WIDTH/2));
 
-	if (XPosL >= 320)
-	{
-		return left_angle;
-	}
-	else if (XPosR < 320)
-	{
-		return 	right_angle;
-	}
-	else if (abs(left_angle) < abs(right_angle)) 
+	if (abs(left_angle) < abs(right_angle)) 
 	{
 		return left_angle;
 	}
@@ -106,6 +99,29 @@ double Colored_Object::angle_close()
 	{ 
 	return right_angle;
 	}
+}
+
+double Colored_Object::angle_far()
+{
+	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosL - (PIXEL_WIDTH/2));
+	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosR - (PIXEL_WIDTH/2));
+
+	if (abs(left_angle) < abs(right_angle)) 
+	{
+		return right_angle;
+	}
+	else
+	{ 
+	return left_angle;
+	}
+}
+
+double Colored_Object::distance()
+{
+	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
+	cout << "Pixel, " << PIXEL_HEIGHT - YPos;
+
+	return HEIGHT_OF_CAMERA * tan((phi + (VERTICAL_FOV/PIXEL_HEIGHT * (PIXEL_HEIGHT - YPos)))*PI/180);
 }
 /*
 vector<double> pixel_to_lenght(vector<int> pixels)
