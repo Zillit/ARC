@@ -15,37 +15,39 @@ lista =""
 lista2 = []
 i=0
 distThresh = 40
-theta_min = 300
-theta_max = 60
+leftMin = 225
+leftMax = 315
+rightMin = 45
+rightMax = 135
+P = 1
 
 spi = spidev.SpiDev()
 spi.open(0,0)
 spi.mode = 0b00
+spi.xfer2([15],250000,1,8)
 
-def get_target(lista):
-        r = 0
-        theta = 0
-        maximus = len(lista)-1
-        first = int(lista[0][0])
-        last = int(lista[maximus][0])
+def getLeft(lista):
+        r = 100000
         for i in range(len(lista)):
                 dist = int(lista[i][0])
                 arg = int(lista[i][1])
-                if (i==0):
-                        if ((theta_max > arg or arg > theta_min)  and last > distThresh and int(lista[1][0])>distThresh):
-                                r = dist
-                                theta = arg
-                elif (i==maximus):
-                        if ((theta_max > arg or arg > theta_min) and first > distThresh and int(lista[maximus-1][0])>distThresh):
-                                r = dist
-                                theta = arg
-                elif (i != 0 and i !=maximus):
-                        if (dist > r and (theta_max > arg or arg > theta_min) and int(lista[i-1][0])>distThresh and int(lista[i+1][0])>distThresh):
-                                r = dist
-                                theta = arg
+                if (dist < r and (leftMax> arg and arg > leftMin)):
+                        r = dist
+                        theta = arg
                         
         #print(r,theta)
-        return theta
+        return r
+
+def getRight(lista):
+        r = 100000
+        for i in range(len(lista)):
+                dist = int(lista[i][0])
+                arg = int(lista[i][1])
+                if (dist < r and (rightMax> arg and arg > rightMin)):
+                        r = dist
+                        theta = arg
+        #print(r,theta)
+        return r
 
 
 while True:
@@ -60,16 +62,15 @@ while True:
                         if i < 150:
                                 i += 1
                         else:
-                                angular = get_target(lista2)
-                                #print(angular)
+                                leftD = getLeft(lista2)
+                                rightD = getRight(lista2)
                                 spi.xfer2([139],250000,1,8)
-                                if (angular > 315):
-                                        angular -= theta_min
+                                if leftD<rightD:
+                                        degree = 15 - min((leftD-rightD)*P,15)
                                 else:
-                                        angular += (90-theta_max)
-                                angular = 90 - angular
-                                #print(angulate/3)
-                                spi.xfer2([int(angular/3)],250000,1,8)
+                                        degree = 15 + min((rightD-leftD)*P,15)
+
+                                spi.xfer2([int(degree)],250000,1,8)
                                 i = 0
                                 lista2= []
                                 break

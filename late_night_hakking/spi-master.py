@@ -12,19 +12,13 @@ spi_styr.open(0,0)
 spi_styr.mode = 0b00
 
 spi_sens = spidev.SpiDev()
-spi_sens.open(0,1) # Har inte testat att CS1 funkar men det borde den göra
+spi_sens.open(0,1) # Shit works yo
 spi_sens.mode = 0b00
 
-################################################
-#    Om nu sensordata bara hämtas samtidigt    #
-#    som styrbeslut skickas istället för att   #
-#  kolla av den på annat initiativ än begäran  #
-#    av huvudprogrammet räcker en PUSH-PULL    #
-#       istället för att krångla med PAIR      #
-################################################
 context = zmq.Context()
 socket = context.socket(zmq.REP)
-socket.connect("tcp://localhost:5558")
+socket.bind("tcp://*:5566")
+
 
 def sensor_transmit():
 	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
@@ -35,15 +29,24 @@ def sensor_transmit():
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8) # Skicka kommando till styrmodulen via spi
 
-while True:
-	#command = socket.recv_string() # Ta emot kommando via zmq
-	styr_transmit(int(0xff)) # Skicka till styr
-	reply = sensor_transmit() # Läs sensordata
-	print(reply)
-	time.sleep(0.1)
-	#reply = "hakka datta"
-	#socket.send_string(reply) # Skicka vidare via zmq
-	
+
+def main():
+        while True:
+                try:
+                        command = socket.recv_string(zmq.DONTWAIT)
+                        
+                        styr_transmit(int(command))
+                        reply = sensor_transmit()# Läs sensordata
+                        command.send_string(reply)
+                except :
+                        continue
+                #time.sleep(0.1)
+	socket.close()
+	context.term()
+
+
+if __name__ == '__main__':
+        main()
 
 
 

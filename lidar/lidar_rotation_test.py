@@ -11,6 +11,7 @@ sock.settimeout(5.0)
 print("Connection Acquired")
 lista =""
 lista2 = []
+lista3 = []
 i=0
 
 
@@ -36,5 +37,11 @@ while True:
                         if i < 1000:
                                 i += 1
                         else:
-                                list_magic(lista)
+                                for i in range(len(lista2)):
+                                        lista3.append(lista2[i][1])
+                                print(lista3)
+                                i = 0
+                                lista2 = []
+                                lista3 = []
+                                #list_magic(lista)
                         break
