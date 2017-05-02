@@ -2,8 +2,6 @@
 #define HINDER_DET_H
 
 #include <vector>
-#include <iostream>
-#include <math.h> 
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
 #include <raspicam/raspicam_cv.h>
@@ -14,31 +12,31 @@ using namespace cv;
 /*
  * An object with a color
  */
-class Colored_Object
+class ColoredObject
 {
 	private:
-	int XPosLeft = 0;
-	int XPosRight = 0;
-	int YPos = 0;
+	int x_pos_left = 0;
+	int x_pos_right = 0;
+	int y_pos = 0;
 
 	public:
-	Colored_Object(int xpl, int xpr, int yp) : XPosL{xpl}, XPosR{xpr} ,YPos{yp} {}
-	virtual ~Colored_Object() {}
-	
+	ColoredObject(int xpl, int xpr, int yp) : x_pos_left{xpl}, x_pos_right{xpr} ,y_pos{yp} {}
+	virtual ~ColoredObject() {}
+
 	/*
 	 * Calculates the closest angle to the obstictle
 	 */
-	double angle_close();
-	
+	double angleClose();
+
 	/*
 	 * Calculates the furthest angle to the obstictle
 	 */
-	double angle_far();
+	double angleFar();
 
 	/*
- 	 * Calculates the distance straight forward to the obsticle
+     * Calculates the distance straight forward to the obsticle
  	 */
-	double ydistance();
+	double yDistance();
 	
 	/*
  	 * Calculates the distance to the obsticle
@@ -49,16 +47,16 @@ class Colored_Object
 /*
  * Detect colored objects in image
  */
-Mat detection_of_color(Mat camera_img, int* lowHSV, int* highHSV);
+Mat detectionOfColor(Mat camera_img, int* lowHSV, int* highHSV);
 
 /* 
  * Detect lines in image
  */
-Mat detect_lines(Mat camera_img);
+Mat detectLines(Mat camera_img);
 
 /*
  * Calculate pixels to a obstical
  */
-vector<Colored_Object> framed_objects(Mat imgThresholded);
+vector<ColoredObject> framedObjects(Mat imgThresholded);
 
 #endif

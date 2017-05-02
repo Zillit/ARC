@@ -1,4 +1,3 @@
-
 #include "hinder_det.h"
 #define PI 3.14159265
 
@@ -7,29 +6,29 @@ using namespace cv;
 using namespace ARC;
 
 
-Mat detection_of_color(Mat camera_img, int lowHSV[3], int highHSV[3])
+Mat detectionOfColor(Mat camera_img, int low_hsv[3], int high_hsv[3])
 {
-	Mat imgHSV;
+	Mat img_hsv;
 
-	cvtColor(camera_img, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+	cvtColor(camera_img, img_hsv, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
-	Mat imgThresholded;
+	Mat img_thresholded;
 
-	inRange(imgHSV, Scalar(lowHSV[0], lowHSV[1], lowHSV[2]), Scalar(highHSV[0], highHSV[1], highHSV[2]), imgThresholded); //Threshold the image
+	inRange(img_hsv, Scalar(low_hsv[0], low_hsv[1], low_hsv[2]), Scalar(high_hsv[0], high_hsv[1], high_hsv[2]), img_thresholded); //Threshold the image
 
 	//morphological opening (remove small objects from the foreground)
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+	erode(img_thresholded, img_thresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+	dilate( img_thresholded, img_thresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
 
 	//morphological closing (fill small holes in the foreground)
-	dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
-	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+	dilate( img_thresholded, img_thresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+	erode(img_thresholded, img_thresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 	
-	return imgThresholded;
+	return img_thresholded;
 }
 
 
-Mat detect_lines(Mat camera_img)
+Mat detectLines(Mat camera_img)
 {
 	Mat detect;
 	Mat dst;
@@ -48,45 +47,44 @@ Mat detect_lines(Mat camera_img)
 }
 
 
-vector<Colored_Object> framed_objects(Mat imgThresholded)
+vector<ColoredObject> framedObjects(Mat img_thresholded)
 {
 
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	//find contours of filtered image using openCV findContours function
-	findContours(imgThresholded, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(img_thresholded, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
     
-	int numObjects = contours.size();
-	vector<Colored_Object> objects;
+	int num_objects = contours.size();
+	vector<ColoredObject> objects;
 
 	/// Approximate contours to polygons + get bounding rects
-	vector<vector<Point>> contours_poly(numObjects);
-	vector<Rect> boundRect(numObjects);
+	vector<vector<Point>> contours_poly(num_objects);
+	vector<Rect> bound_rect(num_objects);
 	
-	for( int i = 0; i < numObjects; i++ )
+	for( int i = 0; i < num_objects; i++ )
 	{ 
-	approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
-        boundRect[i] = boundingRect( Mat(contours_poly[i]) );
+        approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+        bound_rect[i] = boundingRect( Mat(contours_poly[i]) );
 	}
 
-	for(int index = 0; index < numObjects && index < MAX_NUM_OBJECTS; index++)
+	for(int index = 0; index < num_objects && index < MAX_NUM_OBJECTS; index++)
 	{
-		double area = boundRect[index].area();
+		double area = bound_rect[index].area();
         
 		if (area > MIN_AREA)
          	{
-			  Colored_Object tmp(boundRect[index].tl().x, boundRect[index].br().x, boundRect[index].br().y);
+			  ColoredObject tmp(bound_rect[index].tl().x, bound_rect[index].br().x, bound_rect[index].br().y);
 			  objects.push_back(tmp);
           	}
      	}
-	
 	return objects;
 }
 
-double Colored_Object::angle_close()
+double ColoredObject::angleClose()
 {
-	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosL - (PIXEL_WIDTH/2));
-	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosR - (PIXEL_WIDTH/2));
+	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (x_pos_left - (PIXEL_WIDTH/2));
+	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (x_pos_right - (PIXEL_WIDTH/2));
 
 	if (abs(left_angle) < abs(right_angle)) 
 	{
@@ -98,29 +96,29 @@ double Colored_Object::angle_close()
 	}
 }
 
-double Colored_Object::angle_far()
+double ColoredObject::angleFar()
 {
-	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosL - (PIXEL_WIDTH/2));
-	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (XPosR - (PIXEL_WIDTH/2));
+	double left_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (x_pos_left - (PIXEL_WIDTH/2));
+	double right_angle = HORIZONTAL_FOV/PIXEL_WIDTH * (x_pos_right - (PIXEL_WIDTH/2));
 
 	if (abs(left_angle) < abs(right_angle)) 
 	{
 		return right_angle;
 	}
 	else
-	{ 
-	return left_angle;
-	}
+    { 
+        return left_angle;
+    }
 }
 
-double Colored_Object::ydistance()
+double ColoredObject::yDistance()
 {
 	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
 	
-	return HEIGHT_OF_CAMERA * tan((phi + (VERTICAL_FOV/PIXEL_HEIGHT * (PIXEL_HEIGHT - YPos)))*PI/180);
+	return HEIGHT_OF_CAMERA * tan((phi + (VERTICAL_FOV/PIXEL_HEIGHT * (PIXEL_HEIGHT - y_pos)))*PI/180);
 }
 
-double Colored_Object::distance(double angle)
+double ColoredObject::distance(double angle)
 {
-	return ydistance() / cos(angle * PI/180);
+	return yDistance() / cos(angle * PI/180);
 }
