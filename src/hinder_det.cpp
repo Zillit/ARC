@@ -48,38 +48,39 @@ Mat detect_lines(Mat camera_img)
 }
 
 
-vector<Colored_Object> object_pos(Mat imgThresholded)
+vector<Colored_Object> framed_objects(Mat imgThresholded)
 {
 
-    vector< vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    //find contours of filtered image using openCV findContours function
-    findContours(imgThresholded, contours, hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_SIMPLE );
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	//find contours of filtered image using openCV findContours function
+	findContours(imgThresholded, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
     
-    int numObjects = contours.size();
+	int numObjects = contours.size();
 	vector<Colored_Object> objects;
 
-	/// Approximate contours to polygons + get bounding rects and circles
-	vector<vector<Point> > contours_poly( numObjects );
-	vector<Rect> boundRect( numObjects );
-
+	/// Approximate contours to polygons + get bounding rects
+	vector<vector<Point>> contours_poly(numObjects);
+	vector<Rect> boundRect(numObjects);
 	
 	for( int i = 0; i < numObjects; i++ )
-    { 
-		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+	{ 
+	approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
         boundRect[i] = boundingRect( Mat(contours_poly[i]) );
-    }
+	}
 
 	for(int index = 0; index < numObjects && index < MAX_NUM_OBJECTS; index++)
 	{
-          double area = boundRect[index].area();
-          if (area > MIN_AREA)
-          {
+		double area = boundRect[index].area();
+        
+		if (area > MIN_AREA)
+         	{
 			  Colored_Object tmp(boundRect[index].tl().x, boundRect[index].br().x, boundRect[index].br().y);
 			  objects.push_back(tmp);
-          }
-     }
-	 return objects;
+          	}
+     	}
+	
+	return objects;
 }
 
 double Colored_Object::angle_close()
@@ -115,7 +116,7 @@ double Colored_Object::angle_far()
 double Colored_Object::ydistance()
 {
 	int phi = 90 - ANGEL_OF_CAMERA - (VERTICAL_FOV/2);
-
+	
 	return HEIGHT_OF_CAMERA * tan((phi + (VERTICAL_FOV/PIXEL_HEIGHT * (PIXEL_HEIGHT - YPos)))*PI/180);
 }
 
