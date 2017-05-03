@@ -9,8 +9,8 @@ import thread
 context = zmq.Context()
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5565")
-#SPIreq = context.socket(zmq.REQ)
-#SPIreq.connect("tcp://localhost:5566")
+SPIreq = context.socket(zmq.REQ)
+SPIreq.connect("tcp://localhost:5566")
 USERrep = context.socket(zmq.REP)
 
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
@@ -55,7 +55,11 @@ def main():
     while True:
         try:
             message=USERrep.recv()
+            if message[:6] == "STYROR":
+                speed=message[6:7]+128
+                spi_req.send_string("%i" %speed)
             #SPIreq.send_string(message)
+
             print("Recived request: %s" % message)
             #reply = SPIreq.recv_string()
             #print("Received reply: %s" % reply)
