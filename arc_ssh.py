@@ -5,12 +5,17 @@ from zmq import ssh
 import paramiko
 import random
 import thread
+import spidev
+
+spi_styr = spidev.SpiDev()
+spi_styr.open(0,0)
+spi_styr.mode = 0b00
 
 context = zmq.Context()
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5565")
-SPIreq = context.socket(zmq.REQ)
-SPIreq.connect("tcp://localhost:5566")
+#SPIreq = context.socket(zmq.REQ)
+#SPIreq.connect("tcp://localhost:5566")
 USERrep = context.socket(zmq.REP)
 
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
@@ -20,6 +25,8 @@ zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:44
 ARCpub.setsockopt(zmq.SNDHWM,1000)
 LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 
+def styr_transmit(data):
+	spi_styr.xfer2([data],250000,1,8)
 
 def generateFaceLadarThread(threadName,delay):
     print("Started thread %s" % threadName)
@@ -48,22 +55,30 @@ def sendRealDataThread(threadName,delay):
             USERrep.close()
             context.term()
             break
+
+def sendCommandToSPI(thredName,delay):
+    speed, theta =message[7:].split()
+    speed= int(speed)+128
+    theta= int(theta)+53
+    print speed
+    print theta
+    styr_transmit(speed)
+    styr_transmit(theta)
+    print("Recived request: %s" % message)
+    #reply = SPIreq.recv_string()
+    #print("Received reply: %s" % reply)
+    
     
 def main():
-    thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    #thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
     #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:
         try:
             message=USERrep.recv()
             if message[:6] == "STYROR":
-                speed=message[6:7]+128
-                spi_req.send_string("%i" %speed)
-            #SPIreq.send_string(message)
-
-            print("Recived request: %s" % message)
-            #reply = SPIreq.recv_string()
-            #print("Received reply: %s" % reply)
+                thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01)
             USERrep.send(" %s  \n" % message)
+            #SPIreq.send_string(message)
         except KeyboardInterrupt:
             break
     ARCpub.close()

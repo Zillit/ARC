@@ -41,12 +41,11 @@ def main():
                 except :
                         continue
                 #time.sleep(0.1)
-	socket.close()
-	context.term()
+        socket.close()
+        context.term()
 
 
-if __name__ == '__main__':
-        main()
+if __name__ == '__main__':main()
 
 
 

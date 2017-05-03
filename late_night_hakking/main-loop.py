@@ -11,6 +11,7 @@ lidar_sub.connect("tcp://localhost:5556")
 lidar_sub.setsockopt_string(zmq.SUBSCRIBE, "10001")
 LADARpub = context.socket(zmq.PUB)
 LADARpub.bind("tcp://*:5565")
+LADAR.setsockopt_string(zmq.PUBLISH, "10001".encode('ascii'))
 
 # Utkommenterad kamerakod då det inte finns någon 
 # kamera-publisher implementerad ännu
@@ -57,7 +58,7 @@ def main():
 			try:
 				rxdata = lidar_sub.recv_string(zmq.DONTWAIT)
 				id, distance, angle = rxdata.split()
-				LADARpub.send_string("%i %i %i" %(id, angle, distance))
+				LADARpub.send_string(rxdata)
 				lidar_list[i] = [distance, angle]
 				if i < 199:
 					i += 1
