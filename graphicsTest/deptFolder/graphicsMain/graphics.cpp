@@ -127,25 +127,25 @@ void CarPilot::changeDirection(int dTheta)
 
 void CarPilot::carTick()
 {
-    if (update_car_pilot)
-    {
-        sendMessage(address + to_string(speed)+" " + to_string(theta));
+    // if (update_car_pilot)
+    // {
+        sendMessage(address + to_string(speed) + " " + to_string(theta));
         // cout << address << " " << to_string(speed) <<" " << to_string(theta);
         update_car_pilot=false;
-    }
-    else
-    {
-        if(speed>0)
-        speed--;
-        else if(speed<0)
-        speed++;
-        if(theta>0)
-        theta--;
-        else if(theta<0)
-        theta++;
-        // sendMessage(address + to_string(speed)+to_string(theta));
-        cout << address << " " << to_string(speed) <<" " << to_string(theta);
-    }
+    // }
+    // else
+    // {
+    //     if(speed>0)
+    //         speed--;
+    //     else if(speed<0)
+    //         speed++;
+    //     if(theta>0)
+    //         theta--;
+    //     else if(theta<0)
+    //         theta++;
+    //     sendMessage(address + to_string(speed) + " " + to_string(theta));
+    //     // cout << address << " " << to_string(speed) <<" " << to_string(theta);
+    // }
 }
 // void CarPilot::sendMessage(string message)
 // {
@@ -181,8 +181,8 @@ void CarPilot::sendMessage(string message)
         istringstream iss(response);
         iss >> address >> instruction;
         cout << "Address: " << address << " Instruction: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
-        free(response);
-        free(charBuf);
+        // free(response);
+        // free(charBuf);
         REQUEST_NUMBER++;
 }
 CarPilot car;
@@ -592,12 +592,13 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     //     clearFloorY(testM);
     //     paintLadarPoints(ladarPoints, modelCoords, testM);
         break;
-    // case 'u':
+    case 'u':
+        car.carTick();
     //     rotation++;
     //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
     //     clearFloorY(testM);
     //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
-    //     break;
+        break;
     // case 'o':
     //     rotation--;
     //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
@@ -616,11 +617,13 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         TARGET = {0, 0, 0};
         updateCamera(CAM_POS, TARGET);
         break;
-    default:
+    case 'q':
+        sendMessage("STYROR 0 +30");    
         break;
     case 'v':
-        // string message="arc 22";
-        // sendMessage(message);
+        sendMessage("STYROR 15 -30");
+        break;
+    default:
         break;
     }
 }
