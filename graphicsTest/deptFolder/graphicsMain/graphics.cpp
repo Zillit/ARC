@@ -35,7 +35,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <zmq.hpp>
-#include <string>
+#include <sstream>
 #include <iostream>
 #ifndef _WIN32
 #include <unistd.h>
@@ -325,16 +325,33 @@ void paintLadarPoints(boost::circular_buffer<pair<GLfloat, GLfloat>> &ladarPoint
     tempMap.clear();
     ReloadModelData(m);
 }
+static char* s_recv (void *socket) {
+    char buffer [256];
+    int size = zmq_recv (socket, buffer, 255, 0);
+    if (size == -1)
+        return NULL;
+    buffer[size] = '\0';
+    return strndup (buffer, sizeof(buffer) - 1);
+}
+static int s_send (void *socket, char *string) {
+    int size = zmq_send (socket, string, strlen (string), 0);
+    return size;
+}
 void sendMessage(string message)
 {
-        string address="", instruction="";
-        zmq::message_t request(message.size());
-        memcpy(request.data(),&message,message.size());
-        cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
-        requester.send (request);
-        zmq::message_t reply;
-        requester.recv(&reply);
-        istringstream iss(static_cast<char*>(reply.data()));
+        char* charBuf=message.c_str();
+        s_send(requester,charBuf);
+        char* response=s_recv(requester);
+        string address, instruction;
+        // message  = address + instruction;
+        // int charsInMessage = message.length();
+        // cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
+        // zmq::message_t request(charsInMessage*sizeof(char));
+        // memcpy(request.data(), &message, charsInMessage*sizeof(char));
+        // requester.send (request);
+        // zmq::message_t reply;
+        // requester.recv(&reply);
+        istringstream iss(response);
         iss >> address >> instruction;
         cout << "Address: " << address << " Instrucion: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
         REQUEST_NUMBER++;
@@ -392,27 +409,24 @@ void ladarPointsAdd(pair<GLfloat,GLfloat> point)
 }
 void fetchLADARPoints()
 {
-    char instruction;
+    string instruction;
     int angle,distance;
         zmq::message_t update;
     while (subscriber.recv(&update)) 
     {
         std::istringstream iss(static_cast<char*>(update.data()));
         iss >> instruction;
-        switch(instruction)
+        if(instruction == "l")
         {
-            case 'l':
-                iss >> angle >> distance;
-                cout << "angle: " << angle <<" distance: " << distance <<endl;
-                // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
-                ladarPointsAdd(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
-                this_thread::sleep_for(chrono::milliseconds(1));
-                break;
-            default:
-                cout << "Got the bad instruction: " << instruction << endl;
+            iss >> angle >> distance;
+            // cout << "angle: " << angle <<" distance: " << distance <<endl;
+            // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
+            ladarPointsAdd(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
+            this_thread::sleep_for(chrono::milliseconds(1));
         }
+        else
+        cout << "Got the bad instruction: " << instruction << endl;
     }
-
 }
 void paintLines(vec3 begin, vec3 end)
 {
@@ -537,7 +551,7 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         break;
     case 'i':
     cout << "test1 " ;
-        // car->changeSpeed(1);
+        car->changeSpeed(1);
         cout << "test2" << endl;
         // modelCoords = modelCoords * T(0, 0, -SPEED_TRANS);
         // clearFloorY(testM);
@@ -588,7 +602,7 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     default:
         break;
     case 'v':
-        string message="testing sending request";
+        string message="arc 22";
         sendMessage(message);
         
     }

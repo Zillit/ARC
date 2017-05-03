@@ -7,8 +7,8 @@ import random
 import thread
 
 context = zmq.Context()
-#LIDARsub = context.socket(zmq.SUB)
-#LIDARsub.connect("tcp://localhost:5565")
+LIDARsub = context.socket(zmq.SUB)
+LIDARsub.connect("tcp://localhost:5565")
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
 USERrep = context.socket(zmq.REP)
@@ -18,7 +18,7 @@ ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
 ARCpub.setsockopt(zmq.SNDHWM,1000)
-#LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
+LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 
 
 def generateFaceLadarThread(threadName,delay):
@@ -31,6 +31,7 @@ def generateFaceLadarThread(threadName,delay):
             sleep(delay)
         except KeyboardInterrupt:
             ARCpub.close()
+            USERrep.close()
             context.term()
             break
 
@@ -44,20 +45,22 @@ def sendRealDataThread(threadName,delay):
             sleep(delay)
         except KeyboardInterrupt:
             ARCpub.close()
+            USERrep.close()
             context.term()
             break
     
 def main():
-    #thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
-    thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
+    thread.start_ne``w_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:
         try:
             message=USERrep.recv()
+            #.decode('ISO-8859-1')
             #SPIreq.send_string(message)
             print("Recived request: %s" % message)
             #reply = SPIreq.recv_string()
             #print("Received reply: %s" % reply)
-            USERrep.send(b"World")
+            USERrep.send(" %s  \n" % message)
         except KeyboardInterrupt:
             break
     ARCpub.close()
@@ -66,5 +69,4 @@ def main():
     #LIDARsub.close()
     context.term()
     
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
