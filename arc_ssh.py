@@ -50,12 +50,11 @@ def sendRealDataThread(threadName,delay):
             break
     
 def main():
-    thread.start_ne``w_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
     #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:
         try:
             message=USERrep.recv()
-            #.decode('ISO-8859-1')
             #SPIreq.send_string(message)
             print("Recived request: %s" % message)
             #reply = SPIreq.recv_string()

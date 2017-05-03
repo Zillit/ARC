@@ -97,14 +97,17 @@ class CarPilot
 public:
     // CarPilot(zmq::socket_t *requester):requester(requester){};
     CarPilot(){};
-    ~CarPilot();
+    ~CarPilot()=default;
     void changeSpeed(int dV);
     void changeDirection(int dTheta);
     void carTick();
     void sendMessage(string message);
+    static char* s_recv(void *socket);
+    static int s_send(void *socket, char* string);
 private:
     // zmq::socket_t* requester;
-    string address="";
+    string address="STYROR ";
+    string instruction="";
     int speed=0;
     int theta=0;
     bool update_car_pilot=false;
@@ -126,8 +129,8 @@ void CarPilot::carTick()
 {
     if (update_car_pilot)
     {
-        // sendMessage(address + to_string(speed)+to_string(theta));
-        cout << address << " " << to_string(speed) <<" " << to_string(theta);
+        sendMessage(address + to_string(speed)+" " + to_string(theta));
+        // cout << address << " " << to_string(speed) <<" " << to_string(theta);
         update_car_pilot=false;
     }
     else
@@ -144,21 +147,45 @@ void CarPilot::carTick()
         cout << address << " " << to_string(speed) <<" " << to_string(theta);
     }
 }
+// void CarPilot::sendMessage(string message)
+// {
+//         string reply_message="";
+//         zmq::message_t request(message.size());
+//         memcpy(request.data(),&message,message.size());
+//         cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
+//         requester.send (request);
+//         zmq::message_t reply;
+//         requester.recv(&reply);
+//         istringstream iss(static_cast<char*>(reply.data()));
+//         iss >> reply_message;
+//         cout << "Recived: " << reply_message << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
+//         REQUEST_NUMBER++;
+// }
+static char* CarPilot::s_recv (void *socket) {
+    char buffer [256];
+    int size = zmq_recv (socket, buffer, 255, 0);
+    if (size == -1)
+        return NULL;
+    buffer[size] = '\0';
+    return strndup (buffer, sizeof(buffer) - 1);
+}
+static int CarPilot::s_send (void *socket, char *string) {
+    int size = zmq_send (socket, string, strlen (string), 0);
+    return size;
+}
 void CarPilot::sendMessage(string message)
 {
-        string reply_message="";
-        zmq::message_t request(message.size());
-        memcpy(request.data(),&message,message.size());
-        cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
-        requester.send (request);
-        zmq::message_t reply;
-        requester.recv(&reply);
-        istringstream iss(static_cast<char*>(reply.data()));
-        iss >> reply_message;
-        cout << "Recived: " << reply_message << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
+        char* charBuf=message.c_str();
+        s_send(requester,charBuf);
+        char* response=s_recv(requester);
+        istringstream iss(response);
+        iss >> address >> instruction;
+        cout << "Address: " << address << " Instruction: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
+        free(response);
+        free(charBuf);
         REQUEST_NUMBER++;
 }
-class CarPilot* car;
+CarPilot car;
 pair<GLfloat, GLfloat> generateLadarPointFromInputData(GLfloat distance, GLfloat angle)
 {
     return pair<GLfloat, GLfloat>(distance * cos(angle*3.1415927/180 - modelAngleY),-distance * sin(angle*3.1415927/180 - modelAngleY));
@@ -343,14 +370,6 @@ void sendMessage(string message)
         s_send(requester,charBuf);
         char* response=s_recv(requester);
         string address, instruction;
-        // message  = address + instruction;
-        // int charsInMessage = message.length();
-        // cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
-        // zmq::message_t request(charsInMessage*sizeof(char));
-        // memcpy(request.data(), &message, charsInMessage*sizeof(char));
-        // requester.send (request);
-        // zmq::message_t reply;
-        // requester.recv(&reply);
         istringstream iss(response);
         iss >> address >> instruction;
         cout << "Address: " << address << " Instrucion: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
@@ -415,17 +434,17 @@ void fetchLADARPoints()
     while (subscriber.recv(&update)) 
     {
         std::istringstream iss(static_cast<char*>(update.data()));
-        iss >> instruction;
-        if(instruction == "l")
-        {
+        // iss >> instruction;
+        // if(instruction == "l")
+        // {
             iss >> angle >> distance;
             // cout << "angle: " << angle <<" distance: " << distance <<endl;
             // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
             ladarPointsAdd(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
             this_thread::sleep_for(chrono::milliseconds(1));
-        }
-        else
-        cout << "Got the bad instruction: " << instruction << endl;
+        // }
+        // else
+        // cout << "Got the bad instruction: " << instruction << endl;
     }
 }
 void paintLines(vec3 begin, vec3 end)
@@ -433,7 +452,7 @@ void paintLines(vec3 begin, vec3 end)
 }
 void display(void)
 {
-    // car->carTick();
+    car.carTick();
     // zmq::message_t update;
     // for(int i=0;i<200;i++)
     // {
@@ -550,27 +569,25 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         // sendToARC(changeDirection(-deltaTheta));
         break;
     case 'i':
-    cout << "test1 " ;
-        car->changeSpeed(1);
-        cout << "test2" << endl;
+        car.changeSpeed(1);
         // modelCoords = modelCoords * T(0, 0, -SPEED_TRANS);
         // clearFloorY(testM);
         // paintLadarPoints(ladarPoints, modelCoords, testM);
         break;
     case 'k':
-        car->changeSpeed(-1);
+        car.changeSpeed(-1);
     //     modelCoords = modelCoords * T(0, 0, SPEED_TRANS);
     //     clearFloorY(testM);
     //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'j':
-        car->changeDirection(-1);
+        car.changeDirection(-1);
     //     modelCoords = modelCoords * T(-SPEED_TRANS, 0, 0);
     //     clearFloorY(testM);
     //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'l':
-        car->changeDirection(1);
+        car.changeDirection(1);
     //     modelCoords = modelCoords * T(SPEED_TRANS, 0, 0);
     //     clearFloorY(testM);
     //     paintLadarPoints(ladarPoints, modelCoords, testM);
@@ -602,9 +619,9 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     default:
         break;
     case 'v':
-        string message="arc 22";
-        sendMessage(message);
-        
+        // string message="arc 22";
+        // sendMessage(message);
+        break;
     }
 }
 void cleanupSocketAtExit()
@@ -626,7 +643,7 @@ cout << "test after connect" << endl;
     //  Subscribe to id, is nothing
     const char *filter = (argc > 1)? argv [1]: "";
     subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen (filter));
-    CarPilot* car=new CarPilot;//&requester);
+    CarPilot car;//&requester);
     
 
         //  Prepare our context and socket
