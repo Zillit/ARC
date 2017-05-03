@@ -1267,7 +1267,7 @@ void ReloadModelData(Model *m)
 
 	// VBO for vertex data
 	glBindBuffer(GL_ARRAY_BUFFER, m->vb);
-	glBufferData(GL_ARRAY_BUFFER, m->numVertices*3*sizeof(GLfloat), m->vertexArray, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, m->numVertices*3*sizeof(GLfloat), m->vertexArray, GL_DYNAMIC_DRAW);
 	//glVertexAttribPointer(glGetAttribLocation(program, vertexVariableName), 3, GL_FLOAT, GL_FALSE, 0, 0);
 	//glEnableVertexAttribArray(glGetAttribLocation(program, vertexVariableName));
 

@@ -36,17 +36,17 @@ def pub_sub_proxy_thread():
 def main():
     thread.start_new_thread(rep_req_proxy_thread,("rep_req_proxy",1))
     while True:
-        message=ARCsub.recv_multipart()
-        ARCpub.send_multipart(message)
+        message=ARCsub.recv_string()
+        ARCpub.send_string(message)
         try:
             pass
         except KeyboardInterrupt:
             break
 
-    USERreq.close()
-    USERrep.close()
     ARCpub.close()
     ARCsub.close()
+    USERreq.close()
+    USERrep.close()
     context.term()
 
 if __name__ == '__main__':main()

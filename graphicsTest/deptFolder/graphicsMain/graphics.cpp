@@ -28,6 +28,7 @@
 #include <array>
 #include <map>
 #include <algorithm>
+#include <cstdint>
 #include <ctime>
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,12 +44,18 @@
 
 #define sleep(n) Sleep(n)
 #endif
-#include <zmq.h>
-
-using namespace std;
+// #include <zmq.h>
+#include <zmq.hpp>
+#include <sstream>
+#include <thread>
+#include <chrono>
+#include <boost/circular_buffer.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 
 using namespace std;
 using namespace OPENGL;
+
 Model *m, *skyBox;
 
 // Reference to shader program
@@ -59,21 +66,102 @@ GLfloat tmpLastX, tmpLastY;
 struct cameraSample;
 
 ModelObj *testClass;
-
-vector<pair<GLfloat, GLfloat>> ladarPoints;
 map<pair<GLint, GLint>, GLfloat> testMap;
 Model *testM;
 
 GLfloat FLOOR_RANGE = 3, FLOOR_FALLOFF = 0.1;
 GLuint FLOOR_DEPT_RES = 128, FLOOR_WIDTH_RES = 128;
+GLuint MAXIMUM_LADAR_POINTS = 800;
+GLfloat LADAR_SCALER=10;
+GLint MAX_SPEED=10;
+GLint MIN_SPEED=-10;
+GLint MIN_THETA=-30;
+GLint MAX_THETA=30;
+
+boost::circular_buffer<pair<GLfloat,GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
+boost::mutex ladarPointsMutex;
 vec3 CAM_POS{0, 5, 15}, TARGET{0, 0, 0}, UP{0, 1, 0};
 mat4 modelCoords;
 GLfloat modelAngleY = 0;
+thread first;
 int rotation = 0;
+int REQUEST_NUMBER=0;
+    zmq::context_t context (1);
 
+    //  Socket to talk to server
+    zmq::socket_t subscriber (context, ZMQ_SUB);
+    zmq::socket_t requester (context, ZMQ_REQ);
+
+class CarPilot
+{
+public:
+    // CarPilot(zmq::socket_t *requester):requester(requester){};
+    CarPilot(){};
+    ~CarPilot();
+    void changeSpeed(int dV);
+    void changeDirection(int dTheta);
+    void carTick();
+    void sendMessage(string message);
+private:
+    // zmq::socket_t* requester;
+    string address="";
+    int speed=0;
+    int theta=0;
+    bool update_car_pilot=false;
+};
+
+void CarPilot::changeSpeed(int dV)
+{
+    update_car_pilot=true;
+    speed=std::min(std::max(speed+=dV, MIN_SPEED),MAX_SPEED);
+}
+
+void CarPilot::changeDirection(int dTheta)
+{
+    update_car_pilot=true;
+    theta=std::min(std::max(theta+=dTheta, MIN_THETA),MAX_THETA);
+}
+
+void CarPilot::carTick()
+{
+    if (update_car_pilot)
+    {
+        // sendMessage(address + to_string(speed)+to_string(theta));
+        cout << address << " " << to_string(speed) <<" " << to_string(theta);
+        update_car_pilot=false;
+    }
+    else
+    {
+        if(speed>0)
+        speed--;
+        else if(speed<0)
+        speed++;
+        if(theta>0)
+        theta--;
+        else if(theta<0)
+        theta++;
+        // sendMessage(address + to_string(speed)+to_string(theta));
+        cout << address << " " << to_string(speed) <<" " << to_string(theta);
+    }
+}
+void CarPilot::sendMessage(string message)
+{
+        string reply_message="";
+        zmq::message_t request(message.size());
+        memcpy(request.data(),&message,message.size());
+        cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
+        requester.send (request);
+        zmq::message_t reply;
+        requester.recv(&reply);
+        istringstream iss(static_cast<char*>(reply.data()));
+        iss >> reply_message;
+        cout << "Recived: " << reply_message << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
+        REQUEST_NUMBER++;
+}
+class CarPilot* car;
 pair<GLfloat, GLfloat> generateLadarPointFromInputData(GLfloat distance, GLfloat angle)
 {
-    return pair<GLfloat, GLfloat>(distance * sin(angle - modelAngleY), distance * cos(angle - modelAngleY));
+    return pair<GLfloat, GLfloat>(distance * cos(angle*3.1415927/180 - modelAngleY),-distance * sin(angle*3.1415927/180 - modelAngleY));
 }
 
 vec3 GenerateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, int FLOOR_WIDTH_RES, int FLOOR_DEPT_RES)
@@ -88,14 +176,14 @@ bool pairInRange(pair<GLint, GLint> p)
 {
     return (p.first > 0 && p.first < FLOOR_WIDTH_RES && p.second > 0 && p.second < FLOOR_DEPT_RES);
 }
-void findSurroundingCoords(vec3 coords, GLuint range, GLfloat falloff, map<pair<GLint, GLint>, GLfloat> &mapObj)
+void findSurroundingCoords(vec3 coords, GLuint range, GLfloat falloff, map<pair<GLfloat, GLfloat>, GLfloat> &mapObj)
 {
     GLuint dubbleRange = range * range;
     int x = coords.x + 0.5;
     int z = coords.z + 0.5;
-    for (int xIt = 0; xIt <= range + 0.5; xIt++)
+    for (int xIt = 0; xIt <= range; xIt++)
     {
-        for (int zIt = 0; zIt <= range + 0.5; zIt++)
+        for (int zIt = 0; zIt <= range; zIt++)
         {
             GLfloat distance = xIt * xIt + zIt * zIt;
             if (distance < dubbleRange)
@@ -218,13 +306,14 @@ Model *generateFlatTerrrain()
 
     return model;
 }
-void paintLadarPoints(vector<pair<GLfloat, GLfloat>> &ladarPoints, mat4 translation, Model *m)
+void paintLadarPoints(boost::circular_buffer<pair<GLfloat, GLfloat>> &ladarPoints, mat4 translation, Model *m)
 {
-    map<pair<GLint, GLint>, GLfloat> tempMap;
+    boost::lock_guard<boost::mutex> guard(ladarPointsMutex);
+    map<pair<GLfloat, GLfloat>, GLfloat> tempMap;
 
     for (it : ladarPoints)
     {
-        pair<GLint, GLint> temp{-(int)translation.m[3] + it.first, -(int)translation.m[11] + it.second};
+        pair<GLfloat, GLfloat> temp{it.first-translation.m[3], + it.second-translation.m[11]};
         if (pairInRange(temp))
             findSurroundingCoords(vec3(temp.first, 0, temp.second), 5, 0.1, tempMap);
         // modifyFloorY(temp.first, temp.second, it.second, testM);
@@ -236,7 +325,20 @@ void paintLadarPoints(vector<pair<GLfloat, GLfloat>> &ladarPoints, mat4 translat
     tempMap.clear();
     ReloadModelData(m);
 }
-
+void sendMessage(string message)
+{
+        string address="", instruction="";
+        zmq::message_t request(message.size());
+        memcpy(request.data(),&message,message.size());
+        cout << "Sending test number: " << REQUEST_NUMBER << "..." << endl;
+        requester.send (request);
+        zmq::message_t reply;
+        requester.recv(&reply);
+        istringstream iss(static_cast<char*>(reply.data()));
+        iss >> address >> instruction;
+        cout << "Address: " << address << " Instrucion: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
+        REQUEST_NUMBER++;
+}
 void init(void)
 {
     // GL inits
@@ -246,7 +348,7 @@ void init(void)
     glCullFace(GL_TRUE);
     printError("GL inits");
     modelCoords = IdentityMatrix();
-    modelCoords = modelCoords * T(-64, 0, -128);
+    modelCoords = T(-64, 0, -128);
 
     projectionMatrix = frustum(LEFT_, RIGHT_, BOTTOM_, TOP_, NEAR_, FAR_);
     rotationMatrix = IdentityMatrix();
@@ -266,13 +368,13 @@ void init(void)
     glBindTexture(GL_TEXTURE_2D, tex_terrain);
 
     // End of upload of geometry
-    // glUseProgram(program_skybox);
-    // glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
-    // glActiveTexture(GL_TEXTURE1);
-    // glUniform1i(glGetUniformLocation(program, "tex"), 1);
-    // LoadTGATextureSimple("SkyBox512.tga", &tex_sky);
-    // glBindTexture(GL_TEXTURE_2D, tex_sky); // Bind Our Texture tex_terrain
-    // skyBox = LoadModelPlus("skybox.obj");
+    glUseProgram(program_skybox);
+    glUniformMatrix4fv(glGetUniformLocation(program_skybox, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
+    glActiveTexture(GL_TEXTURE1);
+    glUniform1i(glGetUniformLocation(program_skybox, "tex"), 1);
+    LoadTGATextureSimple("SkyBox512.tga", &tex_sky);
+    glBindTexture(GL_TEXTURE_2D, tex_sky); // Bind Our Texture tex_terrain
+    skyBox = LoadModelPlus("skybox.obj");
     glUseProgram(program);
 
     glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, rotationMatrix.m);
@@ -283,18 +385,69 @@ void init(void)
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     printError("init arrays");
 }
+void ladarPointsAdd(pair<GLfloat,GLfloat> point)
+{
+    boost::lock_guard<boost::mutex> guard(ladarPointsMutex);
+    ladarPoints.push_back(point);
+}
+void fetchLADARPoints()
+{
+    char instruction;
+    int angle,distance;
+        zmq::message_t update;
+    while (subscriber.recv(&update)) 
+    {
+        std::istringstream iss(static_cast<char*>(update.data()));
+        iss >> instruction;
+        switch(instruction)
+        {
+            case 'l':
+                iss >> angle >> distance;
+                cout << "angle: " << angle <<" distance: " << distance <<endl;
+                // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
+                ladarPointsAdd(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
+                this_thread::sleep_for(chrono::milliseconds(1));
+                break;
+            default:
+                cout << "Got the bad instruction: " << instruction << endl;
+        }
+    }
 
+}
+void paintLines(vec3 begin, vec3 end)
+{
+}
 void display(void)
 {
-    // clear the screen
+    // car->carTick();
+    // zmq::message_t update;
+    // for(int i=0;i<200;i++)
+    // {
+    //     subFromARC.recv(&update);
+    //     int angle, distance;
+    //     istringstream iss(static_cast<char*>(update.data()));
+    //     iss >> angle >> distance;
+    //     cout << "Angle: " << angle << " and Distance: " << distance << endl;
+    // }
+    // // clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glUseProgram(program_skybox);
+    // total =T(camMatrix.m[3],camMatrix.m[7]-0.5,camMatrix.m[11])*camMatrix;
+
+    // glUniformMatrix4fv(glGetUniformLocation(program_skybox, "mdlMatrix"), 1, GL_TRUE, total.m);
+    // DrawModel(skyBox,program_skybox, "inPositon","inNormal","inTexCoord");
+    clearFloorY(testM);
+    paintLadarPoints(ladarPoints, modelCoords, testM);
     printError("pre display");
     a += 0.05;
     glUseProgram(program_terrain);
+    
+    // vec3 b{0.0,0.5,0.0};
+    // vec3 e{0.0,10.0,-20.0};
+    // paintLines(b,e);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex_terrain);
-    // mat4 rotationMatrix = Rz(a / 3) * Ry(a);
-    total = modelCoords * rotationMatrix * camMatrix;
+    total = modelCoords  * camMatrix;
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
     // glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
@@ -305,6 +458,7 @@ void display(void)
     // glUniformMatrix4fv(glGetUniformLocation(program, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
     // glUniformMatrix4fv(glGetUniformLocation(program, "camMatrix"), 1, GL_TRUE, camMatrix.m);
+    mat4 rotationMatrix = Rz(a / 3) * Ry(a);
     glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, rotationMatrix.m);
     DrawModel(m, program, "inPosition", "inNormal", "inTexCoord");
     // cout << "test2" << endl;
@@ -382,38 +536,43 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         // sendToARC(changeDirection(-deltaTheta));
         break;
     case 'i':
-        system("echo -ne \"/x01/x02/x03/\" /dev/spi0.0");
-        modelCoords = modelCoords * T(0, 0, -SPEED_TRANS);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords, testM);
+    cout << "test1 " ;
+        // car->changeSpeed(1);
+        cout << "test2" << endl;
+        // modelCoords = modelCoords * T(0, 0, -SPEED_TRANS);
+        // clearFloorY(testM);
+        // paintLadarPoints(ladarPoints, modelCoords, testM);
         break;
     case 'k':
-        modelCoords = modelCoords * T(0, 0, SPEED_TRANS);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+        car->changeSpeed(-1);
+    //     modelCoords = modelCoords * T(0, 0, SPEED_TRANS);
+    //     clearFloorY(testM);
+    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'j':
-        modelCoords = modelCoords * T(-SPEED_TRANS, 0, 0);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+        car->changeDirection(-1);
+    //     modelCoords = modelCoords * T(-SPEED_TRANS, 0, 0);
+    //     clearFloorY(testM);
+    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'l':
-        modelCoords = modelCoords * T(SPEED_TRANS, 0, 0);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords, testM);
+        car->changeDirection(1);
+    //     modelCoords = modelCoords * T(SPEED_TRANS, 0, 0);
+    //     clearFloorY(testM);
+    //     paintLadarPoints(ladarPoints, modelCoords, testM);
         break;
-    case 'u':
-        rotation++;
-        rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
-        break;
-    case 'o':
-        rotation--;
-        rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
-        clearFloorY(testM);
-        paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
-        break;
+    // case 'u':
+    //     rotation++;
+    //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
+    //     clearFloorY(testM);
+    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+    //     break;
+    // case 'o':
+    //     rotation--;
+    //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
+    //     clearFloorY(testM);
+    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+    //     break;
     case 'g':
         for (int i = 1; i < 24; i++)
         {
@@ -428,19 +587,46 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         break;
     default:
         break;
+    case 'v':
+        string message="testing sending request";
+        sendMessage(message);
+        
     }
+}
+void cleanupSocketAtExit()
+{
+    zmq_close(&subscriber);
+    zmq_close(&requester);
+    zmq_term(&context);
+    //Makes sure that all threads are terminated.
+    terminate();
 }
 int main(int argc, char *argv[])
 {
-    //  Prepare our context and socket
-    zmq::context_t context(1);
-    zmq::socket_t frontend(context, ZMQ_SUB);
-    int rc = zmq_connect(frontend, "tcp://nhkim91.ddns.net:2224");
-    assert(rc == 0);
+    atexit(cleanupSocketAtExit);
+    thread first(fetchLADARPoints);
+    subscriber.connect("tcp://localhost:2555");
+cout << "test before connect" << endl;
+    requester.connect("tcp://localhost:2550");
+cout << "test after connect" << endl;
+    //  Subscribe to id, is nothing
+    const char *filter = (argc > 1)? argv [1]: "";
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen (filter));
+    CarPilot* car=new CarPilot;//&requester);
+    
 
-    zmq::socket_t frontreq(context, ZMQ_REQ);
-    rc = zmq_connect(frontreq, "tcp://nhkim91.ddns.net:2225");
-    assert(rc == 0);
+        //  Prepare our context and socket
+    // zmq::context_t context(1);
+    // zmq::socket_t subFromARC (context, ZMQ_SUB);
+    // subFromARC.connect("tcp://localhost:4555");
+    //    const char *filter = "";
+    // subFromARC.setsockopt(ZMQ_SUBSCRIBE, filter, strlen (filter));
+    // Socket.setsockopt_string(ZMQ_SUBSCRIBE,'',0);
+    // Socket.setsockopt(ZMQ_RCVHWM,1000);
+
+    // zmq::socket_t frontreq(context, ZMQ_REQ);
+    // rc = zmq_connect(frontreq, "tcp://nhkim91.ddns.net:2225");
+    // assert(rc == 0);
 
     // while (true)
     // {
@@ -461,7 +647,7 @@ int main(int argc, char *argv[])
         glutInitWindowSize(1200, 1200);
         glutCreateWindow(WINDOW_NAME.c_str());
         glutDisplayFunc(display);
-        glutRepeatingTimer(10);
+        glutRepeatingTimer(20);
         init();
         setUpCamera();
         vector<cameraSample> testVector{};
@@ -484,11 +670,7 @@ int main(int argc, char *argv[])
         //     ladarPoints[temp]=testCoords[i].y;
         //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
         // }
-        for (int i = 1; i < 5; i++)
-        {
-            pair<GLfloat, GLfloat> testPair{-12 + i * 24, -12 + i * 12};
-            ladarPoints.push_back(testPair);
-        }
+        
         paintLadarPoints(ladarPoints, modelCoords, testM);
         // for(int i=0;i<50;i++)
         // {

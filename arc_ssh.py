@@ -12,6 +12,7 @@ context = zmq.Context()
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
 USERrep = context.socket(zmq.REP)
+
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
@@ -19,13 +20,14 @@ zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:44
 ARCpub.setsockopt(zmq.SNDHWM,1000)
 #LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 
+
 def generateFaceLadarThread(threadName,delay):
     print("Started thread %s" % threadName)
     while True:
         try:
-            angle=random.randrange(0,360)
+            angle=random.randrange(0,60)
             distance=random.randrange(10,3000)
-            ARCpub.send_string("%f %i \n" %(angle, distance))
+            ARCpub.send_string("l %i %i \n" %(angle, distance))
             sleep(delay)
         except KeyboardInterrupt:
             ARCpub.close()
@@ -47,6 +49,7 @@ def sendRealDataThread(threadName,delay):
     
 def main():
     #thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:
         try:
             message=USERrep.recv()
