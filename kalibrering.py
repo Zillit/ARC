@@ -9,8 +9,8 @@ while True:
     val = input('d eller s: ')
     if val == 'd':
          degrees = input('Hur många grader: ')
-         resp = spi.xfer2([int(degrees)],500000,5,8)    
+         resp = spi.xfer2([int(degrees)],250000,1,8)    
     if val == 's':
         speed = input('Hur snabbt: ')
-        resp = spi.xfer2([int(speed)+128],500000,5,8)
+        resp = spi.xfer2([int(speed)+128],250000,1,8)
     val = None
