@@ -11,7 +11,7 @@ socket = context.socket(zmq.PUB)
 socket.bind("tcp://*:2555")
 socket.setsockopt(zmq.SNDHWM,1000)
 sockRep = context.socket(zmq.REP)
-sockRep.bind("tcp://*:2550")
+zmq.ssh.tunnel_connection(sockRep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
 def ladarThread(threadName,delay):
     print("Started thread %s" % threadName)
