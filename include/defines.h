@@ -26,7 +26,7 @@ namespace ARC
     const int IHIGHS = 255;
     const int ILOWV = 50;
     const int IHIGHV = 255;
-    const double HEIGHT_OF_CAMERA = 0.2;
+    const double HEIGHT_OF_CAMERA = 0.32;
     const double ANGEL_OF_CAMERA = 0;
     const int PIXEL_HEIGHT = 480;
     const int PIXEL_WIDTH = 640;

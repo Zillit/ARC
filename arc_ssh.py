@@ -16,8 +16,9 @@ LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5565")
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
+#CAMrep = context.socket(zmq.REP)
+#CAMrep.connect("tcp://localhost:5567")
 USERrep = context.socket(zmq.REP)
-
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
@@ -47,7 +48,7 @@ def sendRealDataThread(threadName,delay):
         try:
             mess = LIDARsub.recv_string()
             id, distance, angle = mess.split()
-            print mess
+            print mess             
             ARCpub.send_string("%i %i \n" %(int(angle), int(distance)))
             sleep(delay)
         except KeyboardInterrupt:
@@ -56,27 +57,41 @@ def sendRealDataThread(threadName,delay):
             context.term()
             break
 
-def sendCommandToSPI(thredName,delay):
-    speed, theta =message[7:].split()
-    speed= int(speed)+128
-    theta= int(theta)+53
-    print speed
-    print theta
-    styr_transmit(speed)
-    styr_transmit(theta)
-    print("Recived request: %s" % message)
-    #reply = SPIreq.recv_string()
-    #print("Received reply: %s" % reply)
+def sendCommandToSPI(thredName,delay,message):
+    while True:
+        try:
+            speed, theta =message[7:].split()
+            speed= int(speed)+128
+            theta= int(theta)+53
+            print speed
+            print theta
+            styr_transmit(speed)
+            styr_transmit(theta)
+            print("Recived request: %s" % message)
+            sleep(delay)
+            break
+        except KeyboardInterrupt:
+            break
+    return
     
     
 def main():
-    #thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
     #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:
+        '''
+        try:
+            stopsign=CAMrep.recv(zmq.DONTWAIT)
+            if stopsign:
+                thread.start_new_thread(sendCommandToSPI, ("%s thread" % stopsign,0.01,stopsign))
+                CAMrep.send(" %s \n" % message)
+        except:
+            pass
+        '''
         try:
             message=USERrep.recv()
             if message[:6] == "STYROR":
-                thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01)
+                thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01,message))
             USERrep.send(" %s  \n" % message)
             #SPIreq.send_string(message)
         except KeyboardInterrupt:

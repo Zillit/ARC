@@ -39,7 +39,7 @@ def get_target(lista):
                 first = int(lista[0][0])
                 last = int(lista[maximus][0])
         except ValueError:
-                return diff
+                return (100,diff)
         for i in range(maximus+1):
                 try:
                         dist = int(lista[i][0])
@@ -47,11 +47,15 @@ def get_target(lista):
                 except ValueError:
                         print("Error: " + str(lista[i]))
                         continue
-                if (theta_max< arg < theta_min):
+                if (theta_max + 30 < arg < theta_min - 30):
                         continue
-		###TODO: Adaptive code that figures out adequate number of regions by itself, and puts them in a list or something
+                elif ((theta_max + 30 > arg > theta_max) and dist < l_min):
+                        l_min = dist
+                elif ((theta_min - 30 < arg < theta_min) and dist < r_min):
+                        r_min = dist
+		### TODO: Adaptive code that figures out adequate number of regions by itself, and puts them in a list or something
 		### Range atm: 285-299, 300-314 etc, and 0-14, 15-29 etc
-		###If the point is in the zone and closer than all earlier points in the zone, save it
+		### If the point is in the zone and closer than all earlier points in the zone, save it
                 elif (theta_min <= arg < theta_min+15 and (zoneangles[0][0]>dist)): #Leftmost
                         zoneangles[0][0] = dist
                         zoneangles[0][1] = arg
@@ -100,14 +104,24 @@ def get_target(lista):
                 #print("Right")
                 #return diff+5
         #else:
-        print(zoneangles)
+        #print(zoneangles)
         for jindex in range(len(zoneangles)):
-                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 )
+                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 ):
                         r = zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
                 #print("Chosen angle: " + str(theta))
                 #print("Chosen distance: "+ str(r))
-        return (r, theta)
+        if ((1 < zoneangles[4][0] < stopThresh) or (1 < zoneangles[5][0] < stopThresh)):
+                #Greater than 1 to avoid the "1=infinity" problem witht he LidarLite v3
+                return (10,0)
+        elif ((l_min < 20) and (diff < theta < theta_max)):
+                #print("Left")
+                return (100,diff-5)
+        elif ((r_min < 20) and (( theta < diff) or ( theta > theta_min))):
+                #print("Right")
+                return (100,diff+5) 
+        else:      
+                return (r, theta)
 
 
 while True:
@@ -143,7 +157,7 @@ while True:
                                 else:
                                         angular = int(angular*47/55-11)
                                         
-                                print(angular)
+                                #print(angular)
                                 spi.xfer2([int(angular)],250000,1,8)
                                 #resp = spi_sens.xfer2([0xFF,0,0,0,0],125000,1,8)
                                 #print(resp)
