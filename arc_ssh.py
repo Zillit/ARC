@@ -23,7 +23,7 @@ zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4
 ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
-ARCpub.setsockopt(zmq.SNDHWM,1000)
+ARCpub.setsockopt(zmq.SNDHWM,100)
 LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 
 def styr_transmit(data):
@@ -44,13 +44,13 @@ def generateFaceLadarThread(threadName,delay):
             break
 
 def sendRealDataThread(threadName,delay):
+    sleep(delay)
     while True:
         try:
             mess = LIDARsub.recv_string()
             id, distance, angle = mess.split()
-            print mess             
+            #print mess             
             ARCpub.send_string("%i %i \n" %(int(angle), int(distance)))
-            sleep(delay)
         except KeyboardInterrupt:
             ARCpub.close()
             USERrep.close()
