@@ -33,19 +33,23 @@ def ladarThread(threadName,delay,socket):
                 angle=math.degrees(math.atan2(z1,x1))
                 distance1=math.hypot(x1,z1)
                 socket.send_string("%i %i /n" % (angle, distance1))
-            x2=-50
+            x2=-20
             for z2 in range(0,60):
-                angle=math.degrees(math.atan2(z2,x2))
+                angle2=math.degrees(math.atan2(z2,x2))
                 distance2=math.hypot(x2,z2)
-                socket.send_string("%i %i /n" % (angle, distance2))
+                socket.send_string("%i %i /n" % (angle2, distance2))
                 # angle = randrange(30, 90)
                 # distance = randrange(20, 300)
                 # socket.send_string("%i %i" % (angle, distance))
             z3=90
             for x3 in range(-60,30):
-                angle=math.degrees(math.atan2(z3,x3))
+                angle3=math.degrees(math.atan2(z3,x3))
                 distance3=math.hypot(x3,z3)
-                socket.send_string("%i %i /n" % (angle, distance3))
+                socket.send_string("%i %i /n" % (angle3, distance3))
+            for it in range(0,360):
+                angle4=it
+                distance4=50+it*3
+                socket.send_string("%i %i /n" % (angle4, distance4))
             sleep(1)
         except KeyboardInterrupt:
             break

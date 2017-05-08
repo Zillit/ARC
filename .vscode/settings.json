@@ -3,7 +3,9 @@
         "iostream": "cpp",
         "ostream": "cpp",
         "*.ipp": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "slist": "cpp",
+        "array": "cpp"
     },
     "python.formatting.provider": "yapf"
 }

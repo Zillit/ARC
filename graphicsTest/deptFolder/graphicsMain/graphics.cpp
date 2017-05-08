@@ -71,100 +71,107 @@ Model *testM;
 
 GLfloat FLOOR_RANGE = 3, FLOOR_FALLOFF = 0.1;
 GLuint FLOOR_DEPT_RES = 128, FLOOR_WIDTH_RES = 128;
-GLuint MAP_MIDDLE_X = FLOOR_WIDTH_RES/2;
-GLuint PLANNING_MAX_LEFT=FLOOR_WIDTH_RES/3;
-GLuint PLANNING_MAX_RIGHT=FLOOR_WIDTH_RES-PLANNING_MAX_LEFT;
-GLuint PLANNING_DEPTH=60;
+GLuint MAP_MIDDLE_X = FLOOR_WIDTH_RES / 2;
+GLuint PLANNING_MAX_LEFT = FLOOR_WIDTH_RES / 3;
+GLuint PLANNING_MAX_RIGHT = FLOOR_WIDTH_RES - PLANNING_MAX_LEFT;
+GLuint PLANNING_DEPTH = 120;
+GLfloat MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE = 0.5;
 GLuint MAXIMUM_LADAR_POINTS = 800;
-GLfloat LADAR_SCALER=1;
-GLint MAX_SPEED=13;
-GLint MIN_SPEED=0;
-GLint MIN_THETA=-47;
-GLint MAX_THETA=47;
+GLfloat LADAR_SCALER = 5;
+GLint MAX_SPEED = 13;
+GLint MIN_SPEED = 0;
+GLint MIN_THETA = -47;
+GLint MAX_THETA = 47;
 
-boost::circular_buffer<pair<GLfloat,GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
+boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
 boost::mutex ladarPointsMutex;
-vec3 CAM_POS{0, 5, 15}, TARGET{0, 0, 0}, UP{0, 1, 0};
+vec3 CAM_POS{0, 5, 40}, TARGET{0, 0, 25}, UP{0, 1, 0};
 mat4 modelCoords;
-GLfloat PI=3.1415927;
-GLfloat LADAR_OFFSET =0;// (-0.5)*PI/180; //LADAR does consider straigth ahead to be angle 0.
+GLfloat PI = 3.1415927;
+//-70 seems good to compensate for what is sent.
+GLfloat LADAR_ANGLE_OFFSET = 0; //-70;//(-0.5)*PI/180; //LADAR does consider straigth ahead to be angle 0.
 thread first;
 int rotation = 0;
-int REQUEST_NUMBER=0;
-    zmq::context_t context (1);
+int REQUEST_NUMBER = 0;
+zmq::context_t context(1);
 
-    //  Socket to talk to server
-    zmq::socket_t subscriber (context, ZMQ_SUB);
-    zmq::socket_t requester (context, ZMQ_REQ);
-
+//  Socket to talk to server
+zmq::socket_t subscriber(context, ZMQ_SUB);
+zmq::socket_t requester(context, ZMQ_REQ);
 
 class CarPilot
 {
-public:
+  public:
     // CarPilot(zmq::socket_t *requester):requester(requester){};
     CarPilot(){};
-    ~CarPilot()=default;
+    ~CarPilot() = default;
     void planRoad();
     void changeSpeed(int dV);
     void changeDirection(int dTheta);
-    void setSpeed(int newSpeed, int newTheta=0){speed=newSpeed; theta=newTheta;};
+    void setSpeed(int newSpeed, int newTheta = 0)
+    {
+        speed = newSpeed;
+        theta = newTheta;
+    };
     void carTick();
     void sendMessage(string message);
-    void setMap(Model* map){marching_squere=map;};
-    static char* s_recv(void *socket);
-    static int s_send(void *socket, char* string);
-private:
-    // zmq::socket_t* requester;
-    string address="STYROR ";
-    string instruction="";
-    int speed=0;
-    int theta=0;
-    bool update_car_pilot=false;
-    std::chrono::time_point<std::chrono::system_clock> clock_last=chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration_between_updates = chrono::milliseconds(200);
-    std::vector<pair<GLint,GLuint>> planned_path;
-    int possible_delta_x=1;
-    float con_of_path_search_increase=1;
-    Model* marching_squere;
-};
+    void setMap(Model *map) { marching_squere = map; };
+    static char *s_recv(void *socket);
+    static int s_send(void *socket, char *string);
+    void paintPlan(Model *map);
+    void smoothPlan(int currentPlanes);
 
+  private:
+    // zmq::socket_t* requester;
+    string address = "STYROR ";
+    string instruction = "";
+    int speed = 0;
+    int theta = 0;
+    float current_speed=0;
+    bool update_car_pilot = false;
+    std::chrono::time_point<std::chrono::system_clock> clock_last = chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_between_updates = chrono::milliseconds(200);
+    std::vector<pair<GLint, GLint>> planned_path;
+    GLfloat con_of_path_search_increase = 2;
+    Model *marching_squere;
+};
 void CarPilot::changeSpeed(int dV)
 {
-    speed=std::min(std::max(speed+=dV, MIN_SPEED),MAX_SPEED);
-    update_car_pilot=true;
+    speed = std::min(std::max(speed += dV, MIN_SPEED), MAX_SPEED);
+    update_car_pilot = true;
 }
-
 void CarPilot::changeDirection(int dTheta)
 {
-    theta=std::min(std::max(theta+=dTheta, MIN_THETA),MAX_THETA);
-    update_car_pilot=true;
+    theta = std::min(std::max(theta += dTheta, MIN_THETA), MAX_THETA);
+    update_car_pilot = true;
 }
-void modifyFloorY(GLint, GLint,GLfloat, Model*,bool);
+void modifyFloorY(GLint, GLint, GLfloat, Model *, bool);
 void CarPilot::carTick()
 {
     auto clock_now = chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dTime=clock_now-clock_last;
+    std::chrono::duration<double> dTime = clock_now - clock_last;
     // cout << "delta time: " << dTime.count() << " duration updates: " << duration_between_updates.count() << endl;
-    planRoad();
     if (update_car_pilot)
     {
+        planRoad();
         sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
         // cout << address << " " << to_string(speed) <<" " << to_string(theta);
-        update_car_pilot=false;
-        clock_last=chrono::high_resolution_clock::now();
+        update_car_pilot = false;
+        clock_last = chrono::high_resolution_clock::now();
     }
-    else if (dTime>duration_between_updates)
+    else if (dTime > duration_between_updates)
     {
+        planRoad();
         // if(speed>0)
         //     speed--;
         // else if(speed<0)
         //     speed++;
-        if(theta>0)
-            theta=0;
-        else if(theta<0)
-            theta=0;
-        sendMessage(address +" " + to_string(speed) + " " + to_string(theta));
-        clock_last=chrono::high_resolution_clock::now();
+        if (theta > 0)
+            theta = 0;
+        else if (theta < 0)
+            theta = 0;
+        sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
+        clock_last = chrono::high_resolution_clock::now();
         // cout << address << " " << to_string(speed) <<" " << to_string(theta);
     }
 }
@@ -182,51 +189,129 @@ void CarPilot::carTick()
 //         cout << "Recived: " << reply_message << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
 //         REQUEST_NUMBER++;
 // }
-static char* CarPilot::s_recv (void *socket) {
-    char buffer [256];
-    int size = zmq_recv (socket, buffer, 255, 0);
+static char *CarPilot::s_recv(void *socket)
+{
+    char buffer[256];
+    int size = zmq_recv(socket, buffer, 255, 0);
     if (size == -1)
         return NULL;
     buffer[size] = '\0';
-    return strndup (buffer, sizeof(buffer) - 1);
+    return strndup(buffer, sizeof(buffer) - 1);
 }
-static int CarPilot::s_send (void *socket, char *string) {
-    int size = zmq_send (socket, string, strlen (string), 0);
+static int CarPilot::s_send(void *socket, char *string)
+{
+    int size = zmq_send(socket, string, strlen(string), 0);
     return size;
 }
 void CarPilot::sendMessage(string message)
 {
-        char* charBuf=message.c_str();
-        s_send(requester,charBuf);
-        char* response=s_recv(requester);
-        istringstream iss(response);
-        iss >> address >> instruction;
-        cout << "Address: " << address << " Instruction: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
-        // free(response);
-        // free(charBuf);
-        REQUEST_NUMBER++;
+    char *charBuf = message.c_str();
+    s_send(requester, charBuf);
+    char *response = s_recv(requester);
+    istringstream iss(response);
+    iss >> address >> instruction;
+    // cout << "Address: " << address << " Instruction: " << instruction << ", to message: " << message << ", as request number: " << REQUEST_NUMBER << endl;
+    // free(response);
+    // free(charBuf);
+    REQUEST_NUMBER++;
+}
+GLfloat getFloorY(GLint, GLint, Model *);
+void CarPilot::paintPlan(Model *map)
+{
+    int endDepth=planned_path.size();
+    for (int iter = 1; iter < endDepth; iter++)
+    {
+        // cout << iter << "start: " << planned_path.at(iter).first << " and width: " << planned_path.at(iter).second << endl;
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), testM, false);
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second + 1, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), testM, false);
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second - 1, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), testM, false);
+    }
+}
+void CarPilot::smoothPlan(int currentPlanes)
+{
+    //Smooth out path
+    // for(int iter=currentPlanes;iter>1;iter--)
+    // {
+    //     cout << "test1" << endl;
+    //     int deltaPoint=planned_path.at(iter).first + planned_path.at(iter).second -planned_path.at(iter-1).first + planned_path.at(iter-1).second;
+    //     cout << "test2: " << deltaPoint << endl;
+    //     if(deltaPoint>con_of_path_search_increase)
+    //     {
+    //         cout << "test3" << endl;
+    //         for(int i=deltaPoint;i>2;i--)
+    //         {
+    //             planned_path.at(iter-i).second+=deltaPoint-i;
+    //         }
+    //     }
+    //     else if (deltaPoint<-con_of_path_search_increase)
+    //     {
+    //         cout << "test4" << endl;
+    //         for(int i=deltaPoint;i<-1;i++)
+    //         {
+    //             planned_path.at(iter-i).second+=-deltaPoint-i;
+    //         }
+    //     }
+
+    // }
 }
 void CarPilot::planRoad()
 {
-    // pair<GLint xStart,GLuint xIterator> freeSpace;
-    for (int depthIterator=1;depthIterator<PLANNING_DEPTH;depthIterator++)
+    int xStart, xEnd;
+    planned_path.clear();
+    //For initilizing the algoritm.
+    pair<int, int> clearSpace = {MAP_MIDDLE_X-2, 4};
+    planned_path.push_back(clearSpace);
+    for (int depthIterator = 1; depthIterator < PLANNING_DEPTH; depthIterator++)
     {
-        int xStart=std::max((int)PLANNING_MAX_LEFT,(int)(MAP_MIDDLE_X - depthIterator*con_of_path_search_increase));
-        int xEnd=std::min((int)PLANNING_MAX_RIGHT,(int)(MAP_MIDDLE_X + depthIterator*con_of_path_search_increase));
-        for (int widthIterator=xStart; widthIterator<xEnd; widthIterator++)
+        xStart = std::max((int)PLANNING_MAX_LEFT, (int)(MAP_MIDDLE_X - depthIterator * con_of_path_search_increase-3));
+        xEnd = std::min((int)PLANNING_MAX_RIGHT, (int)(MAP_MIDDLE_X + depthIterator * con_of_path_search_increase+3));
+        int xFirstOpenSpace = -1;
+        int openSpaceDistance = -1;
+        bool hasFoundOpenSpace = false;
+        for (int widthIterator = xStart; widthIterator < xEnd; widthIterator++)
+        {
+            // cout << "widthI: " << widthIterator << " deptI: " << depthIterator << endl;
+            // modifyFloorY(widthIterator,FLOOR_DEPT_RES-depthIterator, -10, testM, false);
+            if (getFloorY(widthIterator, FLOOR_DEPT_RES-depthIterator, testM) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE)
             {
-                // cout << "widthI: " << widthIterator << " deptI: " << depthIterator << endl;
-                modifyFloorY(widthIterator,depthIterator, -10, testM, false);
+                hasFoundOpenSpace = true;
+                xFirstOpenSpace = widthIterator;
+                while ((getFloorY(widthIterator, FLOOR_DEPT_RES-depthIterator, testM) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE) && (widthIterator < xEnd))
+                {
+                    widthIterator++;
+                    openSpaceDistance++;
+                }
             }
+            if ((clearSpace.second < openSpaceDistance) && (planned_path.back().first<(xFirstOpenSpace+openSpaceDistance)) && ((planned_path.back().first+planned_path.back().second)>xFirstOpenSpace))
+            {
+                clearSpace = {xFirstOpenSpace, openSpaceDistance};
+            }
+        }
+        if (hasFoundOpenSpace)
+        {
+            clearSpace.second=clearSpace.second/2;
+            planned_path.push_back(clearSpace);
+        }
+        else
+        {
+            //Destroy a few parts of the planned path in order to avoid collision.
+            for(int i=0;i<4;i++)
+            {
+                planned_path.pop_back();
+            }
+            smoothPlan(depthIterator-4);
+            return;
+        }
+        hasFoundOpenSpace = false;
     }
-    ReloadModelData(testM);
+    smoothPlan((int)PLANNING_DEPTH);
+    // ReloadModelData(testM);
 }
 CarPilot car;
 pair<GLfloat, GLfloat> generateLadarPointFromInputData(GLfloat distance, GLfloat angle)
 {
-    return pair<GLfloat, GLfloat>(distance * cos(angle),-distance * sin(angle));
+    return pair<GLfloat, GLfloat>(distance * cos(angle), -distance * sin(angle));
 }
-
 vec3 GenerateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, int FLOOR_WIDTH_RES, int FLOOR_DEPT_RES)
 {
     vec3 temp;
@@ -278,7 +363,11 @@ void clearFloorY(Model *m)
     {
         m->vertexArray[iter * 3 + 1] = 0;
     }
-    ReloadModelData(m);
+    // ReloadModelData(m);
+}
+GLfloat getFloorY(GLint x, GLint z, Model *m)
+{
+    return m->vertexArray[(x + z * FLOOR_WIDTH_RES) * 3 + 1];
 }
 void modifyFloorY(GLint x, GLint z, GLfloat y, Model *m, bool additive = false)
 {
@@ -301,6 +390,23 @@ void modifyFloorY(GLint x, GLint z, GLfloat y, Model *m, bool additive = false)
     //  ReloadModelData(m);
 }
 // void TriangleGeometric::generateTriangleMesh(float length, float width, int FLOOR_DEPT_RES, int FLOOR_WIDTH_RES, float scaler = 1)
+void generateNormalsInTerrain(Model *tm)
+{
+    for (auto x = 1; x < FLOOR_WIDTH_RES; x++)
+        for (auto z = 2; z < FLOOR_DEPT_RES; z++)
+        {
+            vec3 temp = GenerateNormalFromPoints(m->vertexArray[(-FLOOR_WIDTH_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1],
+                                                 m->vertexArray[(FLOOR_WIDTH_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1],
+                                                 m->vertexArray[(FLOOR_WIDTH_RES + FLOOR_DEPT_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1],
+                                                 m->vertexArray[(-FLOOR_WIDTH_RES - FLOOR_DEPT_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1],
+                                                 m->vertexArray[(FLOOR_DEPT_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1],
+                                                 m->vertexArray[(-FLOOR_DEPT_RES + x + z * FLOOR_WIDTH_RES) * 3 + 1], FLOOR_WIDTH_RES, FLOOR_DEPT_RES);
+            // Normal vectors. You need to calculate these.
+            tm->normalArray[(x + z * FLOOR_WIDTH_RES) * 3 + 0] = temp.x;
+            tm->normalArray[(x + z * FLOOR_WIDTH_RES) * 3 + 1] = temp.y;
+            tm->normalArray[(x + z * FLOOR_WIDTH_RES) * 3 + 2] = temp.z;
+        }
+}
 Model *generateFlatTerrrain()
 {
     GLuint vertexCount = FLOOR_DEPT_RES * FLOOR_WIDTH_RES;
@@ -376,7 +482,7 @@ void paintLadarPoints(boost::circular_buffer<pair<GLfloat, GLfloat>> &ladarPoint
 
     for (it : ladarPoints)
     {
-        pair<GLfloat, GLfloat> temp{it.first-translation.m[3], + it.second-translation.m[11]};
+        pair<GLfloat, GLfloat> temp{it.first - translation.m[3], +it.second - translation.m[11]};
         if (pairInRange(temp))
             findSurroundingCoords(vec3(temp.first, 0, temp.second), 5, 0.1, tempMap);
         // modifyFloorY(temp.first, temp.second, it.second, testM);
@@ -386,31 +492,34 @@ void paintLadarPoints(boost::circular_buffer<pair<GLfloat, GLfloat>> &ladarPoint
         modifyFloorY(it.first.first, it.first.second, it.second, m);
     }
     tempMap.clear();
-    ReloadModelData(m);
+    // ReloadModelData(m);
 }
-static char* s_recv (void *socket) {
-    char buffer [256];
-    int size = zmq_recv (socket, buffer, 255, 0);
+static char *s_recv(void *socket)
+{
+    char buffer[256];
+    int size = zmq_recv(socket, buffer, 255, 0);
     if (size == -1)
         return NULL;
     buffer[size] = '\0';
-    return strndup (buffer, sizeof(buffer) - 1);
+    return strndup(buffer, sizeof(buffer) - 1);
 }
-static int s_send (void *socket, char *string) {
-    int size = zmq_send (socket, string, strlen (string), 0);
+static int s_send(void *socket, char *string)
+{
+    int size = zmq_send(socket, string, strlen(string), 0);
     return size;
 }
 void sendMessage(string message)
 {
-        char* charBuf=message.c_str();
-        s_send(requester,charBuf);
-        char* response=s_recv(requester);
-        string address, instruction;
-        istringstream iss(response);
-        iss >> address >> instruction;
-        cout << "Address: " << address << " Instrucion: " << instruction << ", to message: " << message << ", as request number: "<< REQUEST_NUMBER << endl;
-        REQUEST_NUMBER++;
+    char *charBuf = message.c_str();
+    s_send(requester, charBuf);
+    char *response = s_recv(requester);
+    string address, instruction;
+    istringstream iss(response);
+    iss >> address >> instruction;
+    // cout << "Address: " << address << " Instrucion: " << instruction << ", to message: " << message << ", as request number: " << REQUEST_NUMBER << endl;
+    REQUEST_NUMBER++;
 }
+void updateCamera(vec3, vec3);
 void init(void)
 {
     // GL inits
@@ -425,8 +534,8 @@ void init(void)
     projectionMatrix = frustum(LEFT_, RIGHT_, BOTTOM_, TOP_, NEAR_, FAR_);
     rotationMatrix = IdentityMatrix();
     total = IdentityMatrix();
-    camMatrix = lookAt(0, 5, 15, 0, 0, 0, 0, 1, 0); //T(0,0,-2);
-
+    // camMatrix = lookAt(0, 5, 15, 0, 0, 0, 0, 1, 0); //T(0,0,-2);
+    updateCamera(CAM_POS,TARGET);
     // Load and compile shader
     program = loadShaders("persp.vert", "persp.frag");
     m = LoadModelPlus("bunny.obj");
@@ -457,7 +566,7 @@ void init(void)
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     printError("init arrays");
 }
-void ladarPointsAdd(pair<GLfloat,GLfloat> point)
+void ladarPointsAdd(pair<GLfloat, GLfloat> point)
 {
     boost::lock_guard<boost::mutex> guard(ladarPointsMutex);
     ladarPoints.push_back(point);
@@ -465,35 +574,32 @@ void ladarPointsAdd(pair<GLfloat,GLfloat> point)
 void fetchLADARPoints()
 {
     string instruction;
-    int angle,distance;
-        zmq::message_t update;
+    int angle, distance;
+    zmq::message_t update;
     while (true)
     {
-        while (subscriber.recv(&update)) 
+        while (subscriber.recv(&update))
         {
             // subscriber.recv(&update);
-            std::istringstream iss(static_cast<char*>(update.data()));
+            std::istringstream iss(static_cast<char *>(update.data()));
             // iss >> instruction;
             // if(instruction == "l")
             // {
-                iss >> angle >> distance;
-                GLfloat modDistance=distance/LADAR_SCALER;
-                GLfloat modAngle=angle-LADAR_OFFSET;
-                cout << "modAngle: " << modAngle <<" modDistance: " << modDistance <<endl;
-                // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
-                if(modDistance>5 && modDistance<150 && 0<modAngle && modAngle<180)
-                {
-                    ladarPointsAdd(generateLadarPointFromInputData(modDistance,modAngle*PI/180));
-                }
+            iss >> angle >> distance;
+            GLfloat modDistance = distance / LADAR_SCALER;
+            GLfloat modAngle = angle - LADAR_ANGLE_OFFSET;
+            // cout << "modAngle: " << modAngle << " modDistance: " << modDistance << endl;
+            // ladarPoints.push_back(generateLadarPointFromInputData(distance/LADAR_SCALER,angle));
+            if (modDistance > 5 && modDistance < 150) //&& 0 < modAngle && (angle - LADAR_ANGLE_OFFSET) < 180)
+            {
+                ladarPointsAdd(generateLadarPointFromInputData(distance / LADAR_SCALER, (angle - LADAR_ANGLE_OFFSET) * PI / 180));
+            }
             // }
             // else
             // cout << "Got the bad instruction: " << instruction << endl;
         }
         this_thread::sleep_for(chrono::microseconds(500));
     }
-}
-void paintLines(vec3 begin, vec3 end)
-{
 }
 void display(void)
 {
@@ -516,16 +622,19 @@ void display(void)
     clearFloorY(testM);
     paintLadarPoints(ladarPoints, modelCoords, testM);
     car.carTick();
+    car.paintPlan(testM);
+    // generateNormalsInTerrain(testM);
+    ReloadModelData(testM);
     printError("pre display");
     a += 0.05;
     glUseProgram(program_terrain);
-    
+
     // vec3 b{0.0,0.5,0.0};
     // vec3 e{0.0,10.0,-20.0};
     // paintLines(b,e);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex_terrain);
-    total = modelCoords  * camMatrix;
+    total = modelCoords * camMatrix;
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
     // glUniformMatrix4fv(glGetUniformLocation(program_terrain, "camMatrix"), 1, GL_TRUE, camMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
@@ -582,10 +691,25 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     switch (key)
     {
     case 't':
+        // car.smoothPlan(int currentPlanes);
         // cout << "Test of t key" << endl;
         break;
     case 'c':
         // system("ssh -t -p 4444 arc@nhikim91.ddns.net ssh -p 2222 pi@localhost");
+        break;
+    case '0':
+        LADAR_SCALER += 0.5;
+        cout << LADAR_SCALER << endl;
+        break;
+    case '9':
+        LADAR_SCALER = std::max(LADAR_SCALER - 0.5, 1.0);
+        break;
+    case '5':
+        LADAR_ANGLE_OFFSET++;
+        cout << LADAR_ANGLE_OFFSET << endl;
+        break;
+    case '4':
+        LADAR_ANGLE_OFFSET--;
         break;
     case 'w':
         CAM_POS += vec3(0, 0, -1);
@@ -598,6 +722,7 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         CAM_POS += vec3(0, 0, 1);
         TARGET += vec3(0, 0, 1);
         updateCamera(CAM_POS, TARGET);
+        cout << "camera pos " << CAM_POS.z << " target " << TARGET.z << endl;
         // sendToARC(changeSpeed(-deltaSpeed));
         // system("whoami");
         break;
@@ -621,28 +746,28 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         break;
     case 'k':
         car.changeSpeed(-5);
-    //     modelCoords = modelCoords * T(0, 0, SPEED_TRANS);
-    //     clearFloorY(testM);
-    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+        //     modelCoords = modelCoords * T(0, 0, SPEED_TRANS);
+        //     clearFloorY(testM);
+        //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'j':
         car.changeDirection(-10);
-    //     modelCoords = modelCoords * T(-SPEED_TRANS, 0, 0);
-    //     clearFloorY(testM);
-    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+        //     modelCoords = modelCoords * T(-SPEED_TRANS, 0, 0);
+        //     clearFloorY(testM);
+        //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     case 'l':
         car.changeDirection(10);
-    //     modelCoords = modelCoords * T(SPEED_TRANS, 0, 0);
-    //     clearFloorY(testM);
-    //     paintLadarPoints(ladarPoints, modelCoords, testM);
+        //     modelCoords = modelCoords * T(SPEED_TRANS, 0, 0);
+        //     clearFloorY(testM);
+        //     paintLadarPoints(ladarPoints, modelCoords, testM);
         break;
     case 'u':
         car.carTick();
-    //     rotation++;
-    //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
-    //     clearFloorY(testM);
-    //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
+        //     rotation++;
+        //     rotationMatrix = T(64, 0, 0) * Ry(SPEED_ROT * rotation) * T(-64, 0, 0);
+        //     clearFloorY(testM);
+        //     paintLadarPoints(ladarPoints, modelCoords * rotationMatrix, testM);
         break;
     // case 'o':
     //     rotation--;
@@ -658,17 +783,18 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     //     }
     //     break;
     case 'b':
-        CAM_POS = {0, 5, 15};
-        TARGET = {0, 0, 0};
+        CAM_POS = {0, 5, 40};
+        TARGET = {0, 0, 25};
         updateCamera(CAM_POS, TARGET);
         break;
     case 'q':
-        sendMessage("STYROR 0 0"); 
-        car.setSpeed(0,0);   
+        sendMessage("STYROR 0 0");
+        car.setSpeed(0, 0);
         break;
     case 'v':
-        car.planRoad();
-        // sendMessage("STYROR 15 -30");
+        // CAM_POS = {0, 60, 10};
+        // TARGET = {0, 0, 1};
+        // updateCamera(CAM_POS, TARGET);
         break;
     default:
         break;
@@ -684,21 +810,20 @@ void cleanupSocketAtExit()
 }
 int main(int argc, char *argv[])
 {
-    CarPilot car;//&requester);
-        // car.setMap(*testM);
+    CarPilot car; //&requester);
+    // car.setMap(*testM);
     atexit(cleanupSocketAtExit);
     thread first(fetchLADARPoints);
     subscriber.connect("tcp://localhost:2555");
-cout << "test before connect" << endl;
+    cout << "test before connect" << endl;
     requester.connect("tcp://localhost:2550");
-cout << "test after connect" << endl;
+    cout << "test after connect" << endl;
     //  Subscribe to id, is nothing
-    const char *filter = (argc > 1)? argv [1]: "";
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen (filter));
+    const char *filter = (argc > 1) ? argv[1] : "";
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen(filter));
     cout << "Plannig start at " << PLANNING_MAX_LEFT << " and end at " << PLANNING_MAX_RIGHT << endl;
-    
 
-        //  Prepare our context and socket
+    //  Prepare our context and socket
     // zmq::context_t context(1);
     // zmq::socket_t subFromARC (context, ZMQ_SUB);
     // subFromARC.connect("tcp://localhost:4555");
@@ -725,70 +850,70 @@ cout << "test after connect" << endl;
     //     memcpy(reply.data(), "World", 5);
     //     frontend.send(reply);
 
-        glutInit(&argc, argv);
-        glutInitContextVersion(3, 2);
-        glutInitWindowSize(1200, 1200);
-        glutCreateWindow(WINDOW_NAME.c_str());
-        glutDisplayFunc(display);
-        glutRepeatingTimer(20);
-        init();
-        setUpCamera();
-        vector<cameraSample> testVector{};
-        for (int it = 0; it < 2000; it++)
-        {
-            cameraSample temp{rand() % FLOOR_DEPT_RES, rand() % FLOOR_DEPT_RES};
-            testVector.push_back(temp);
-        }
-        testM = generateFlatTerrrain();
-        // MarchingSquere *testClass = new MarchingSquere;
-        // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
-        // total = camMatrix * projectionMatrix * modelCoords;
-        vec3 testCoords[testVector.size()];
-        // for (int i = 0; i < testVector.size(); i++)
-        // {
-        //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
-        //     testCoords[i].y = rand()%10;
-        //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
-        //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
-        //     ladarPoints[temp]=testCoords[i].y;
-        //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
-        // }
-        
-        paintLadarPoints(ladarPoints, modelCoords, testM);
-        // for(int i=0;i<50;i++)
-        // {
-        //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
-        // }
+    glutInit(&argc, argv);
+    glutInitContextVersion(3, 2);
+    glutInitWindowSize(1200, 1200);
+    glutCreateWindow(WINDOW_NAME.c_str());
+    glutDisplayFunc(display);
+    glutRepeatingTimer(20);
+    init();
+    setUpCamera();
+    vector<cameraSample> testVector{};
+    for (int it = 0; it < 2000; it++)
+    {
+        cameraSample temp{rand() % FLOOR_DEPT_RES, rand() % FLOOR_DEPT_RES};
+        testVector.push_back(temp);
+    }
+    testM = generateFlatTerrrain();
+    // MarchingSquere *testClass = new MarchingSquere;
+    // testClass->generateFloor(FLOOR_DEPT_RESOLUTION,FLOOR_WIDTH_RESOLUTION);
+    // total = camMatrix * projectionMatrix * modelCoords;
+    vec3 testCoords[testVector.size()];
+    // for (int i = 0; i < testVector.size(); i++)
+    // {
+    //     testCoords[i].x = (int)(0.5 + testVector.at(i).relativeX);
+    //     testCoords[i].y = rand()%10;
+    //     testCoords[i].z = (int)(0.5 + testVector.at(i).relativeZ);
+    //     pair<GLint,GLint>temp{testCoords[i].x, testCoords[i].z};
+    //     ladarPoints[temp]=testCoords[i].y;
+    //     // cout << "x: " << testCoords[i].x << " y: " << testCoords[i].y << " z: " << testCoords[i].z << endl;
+    // }
 
-        // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
-        // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
-        // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
-        // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
-        // for(it:testMap)
-        // {
-        //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
-        // }
+    paintLadarPoints(ladarPoints, modelCoords, testM);
+    // for(int i=0;i<50;i++)
+    // {
+    //     modifyFloorY(100-rand()%5,91-rand()%5, 3, testM);
+    // }
 
-        // total= Ry(180);
-        // total = T(-64,0,0);
-        // CenterModel(testM);
-        // testClass->generateModel();
-        // cout << "test main" << endl;
-        // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
-        //             0.0f,5.0f,0.0f,
-        //             10.0f,0.0f,0.0f};
-        // vector<GLfloat> norm={0.0f,1.0f,0.0f};
-        // vector<GLfloat> tex={0.0f,0.0f};
-        // vector<GLuint> ind={0,3,6};
-        // testM =LoadDataToModel(&vert[0],
-        //                         &norm[0],
-        //                         &tex[0],
-        //                         NULL,
-        //                         &ind[0],
-        //                         3,
-        //                         3
-        // );
-        glutMainLoop();
-        //  Send reply back to client
+    // findSurroundingCoords(vec3(50,0,32), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(40,0,60), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(20,0,20), 5, 0.1,testMap);
+    // findSurroundingCoords(vec3(80,0,12), 5, 0.1,testMap);
+    // for(it:testMap)
+    // {
+    //     cout << "testMap: " << it.first.first << "  " << it.first.second << " " << it.second << endl;
+    // }
+
+    // total= Ry(180);
+    // total = T(-64,0,0);
+    // CenterModel(testM);
+    // testClass->generateModel();
+    // cout << "test main" << endl;
+    // vector<GLfloat> vert={-10.0f,0.0f,0.0f,
+    //             0.0f,5.0f,0.0f,
+    //             10.0f,0.0f,0.0f};
+    // vector<GLfloat> norm={0.0f,1.0f,0.0f};
+    // vector<GLfloat> tex={0.0f,0.0f};
+    // vector<GLuint> ind={0,3,6};
+    // testM =LoadDataToModel(&vert[0],
+    //                         &norm[0],
+    //                         &tex[0],
+    //                         NULL,
+    //                         &ind[0],
+    //                         3,
+    //                         3
+    // );
+    glutMainLoop();
+    //  Send reply back to client
     // }
 }
