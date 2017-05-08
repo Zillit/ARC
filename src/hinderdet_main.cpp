@@ -53,7 +53,7 @@ int main()
       waitKey(30);
         
       vector<ColoredObject> object = framedObjects(all_green);
-      vector<ColoredObject> blackline= framedObjects(black);
+      vector<ColoredObject> goal_line= framedObjects(black);
 
       for(int n = 0; n < object.size(); n++)
       {
@@ -71,19 +71,19 @@ int main()
          }
       }
          
-      if(!blackline.empty())
+      if(!goal_line.empty())
       {
-         for(int n{}; n < object.size(); n++)
+         for(int n{}; n < goal_line.size(); n++)
          {
-            cout << object[n].yDistance()  << ", ";
-            if(object[n].yDistance() < 0.5)
+            cout << goal_line[n].yDistance()  << ", ";
+            if(goal_line[n].yDistance() < 0.5)
             {
                z = 0;
                break;
             }
          }
       }
-      else if(blackline.empty() && z == 0)
+      else if(goal_line.empty() && z == 0)
       {
          z = 1;
          num_laps++;
@@ -91,11 +91,11 @@ int main()
 		
       cout << num_laps << endl;
 
-      if(num_laps > 2)
+      if(num_laps >= NUM_LAPS)
       {
             zmq::message_t request (4);
             memcpy (request.data (), "Stop", 4);
-            std::cout << "Sending black" << std::endl;
+            std::cout << "Sending Goal_line" << std::endl;
             socket.send (request);
                 
             zmq::message_t reply;

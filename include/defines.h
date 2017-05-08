@@ -33,6 +33,7 @@ namespace ARC
     const int CANNY_THRE = 60;
     const int MAX_NUM_OBJECTS = 10;
     const int MIN_AREA = 100;
+    const int NUM_LAPS = 3
 
 }
 
