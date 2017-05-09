@@ -56,14 +56,14 @@ ISR(TIMER2_OVF_vect)	//Tidsräkning tills nästa avbrott från halleffektsensorn
 
 ISR(INT0_vect)	//Avbrott då magnetsensorn känner av en magnet
 {
-	shift(time_sec0, 2);	//skiftar tidsmätningarna (i arrayen)
+	shift(time_sec0, 2);	//Skiftar tidsmätningarna (i arrayen)
 	time_sec0[0] = timer0_overflow;
 	median_time0 = median(time_sec0);
 	timer0_overflow = 0;	
 }
 
 
-ISR(INT1_vect)	//samma som ovan fast för andra hjulet
+ISR(INT1_vect)	//Samma som ovan fast för andra hjulet
 {
 	shift(time_sec1, 2);
 	time_sec1[0] = timer1_overflow;
@@ -72,13 +72,13 @@ ISR(INT1_vect)	//samma som ovan fast för andra hjulet
 }
 
 
-int cmpfunc (const void * a, const void * b)	//hjälpfunktion för att sortera värden i storleksordning
+int cmpfunc (const void * a, const void * b)	//Hjälpfunktion för att sortera värden i storleksordning
 {
 	return ( *(uint16_t*)a - *(uint16_t*)b );
 }
 
 
-uint16_t median(uint16_t time[])	//beräkning av median
+uint16_t median(uint16_t time[])	//Beräkning av median
 {
 	uint16_t time_copy[] = {time[0], time[1], time[2]};
 	qsort(time_copy, 3, sizeof(uint16_t), cmpfunc);
@@ -86,7 +86,7 @@ uint16_t median(uint16_t time[])	//beräkning av median
 }
 
 
-void shift(uint16_t array[], int n)		//skiftar en array med n element EN gång
+void shift(uint16_t array[], int n)		//Skiftar en array med n element EN gång
 {
 	for(int i = n; i > 0; i--)
 	{
@@ -95,7 +95,7 @@ void shift(uint16_t array[], int n)		//skiftar en array med n element EN gång
 }
 
 
-void set_zero(uint16_t time[], int n)	//nollställer en array med n element
+void set_zero(uint16_t time[], int n)	//Nollställer en array med n element
 {
 	for(int i = 0; i <= n; i ++)
 	{
@@ -104,7 +104,7 @@ void set_zero(uint16_t time[], int n)	//nollställer en array med n element
 }
 
 
-void spiInit(void) // enabling SPI
+void spiInit(void) //Aktiverar SPI
 {	
 	DDR_SPI = (1<<DD_MISO);
 	SPCR = (1<<SPE)|(0<<CPOL)|(0<<CPHA)|(1<<SPIE)|(1<<SPR1);
@@ -112,18 +112,18 @@ void spiInit(void) // enabling SPI
 }
 
 
-//Interrupt för sensormodul, byt ut variabeln send mot de 4 bytes som ska skickas [fyll i med något om 4 bytes är för mycket]
+//Avbrott för sensormodul, byt ut variabeln send mot de 4 bytes som ska skickas [fyll i med något om 4 bytes är för mycket]
 ISR(SPI_STC_vect)
 {
 	uint8_t inbyte;
-	//read Data Register
+	//SPI-register
 	inbyte = SPDR;
 	switch (state)
 	{
 		case 'W':
 			if (inbyte == 0xFF)
 			{
-				//convert to an array of bytes
+				//Konverterar en array med bytes
 				SPDR = (uint8_t)(median_time0  & 0xff);
 				data[0] = (uint8_t)(median_time0  & 0xff);
 				data[1] = (uint8_t)((median_time0 >> 8) & 0xff);
@@ -148,17 +148,17 @@ ISR(SPI_STC_vect)
 
 void enable_clocks(void)
 {
-	TCNT2 = 0;				//nollställer klockan
-	TIMSK2 = (1 << TOIE2);			//aktiverar overflow_interrupts
-	TCCR2B = (1 << CS21) | (1 << CS20); 	//startar timer_counter2
+	TCNT2 = 0;				//Nollställer klockan
+	TIMSK2 = (1 << TOIE2);			//Aktiverar overflow_interrupts
+	TCCR2B = (1 << CS21) | (1 << CS20); 	//Startar timer_counter2
 }
 
 
 void enable_sensors(void)
 {
-	DDRD = 0x00;			//datariktning till input D-reg
+	DDRD = 0x00;			//Datariktning till input D-reg
 	EICRA = (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00);	//Sätter avbrott vid hög flank
-	EIMSK = (1 << INT1) | (1 << INT0);	//externa interrupts sker på INT1 & INT0
+	EIMSK = (1 << INT1) | (1 << INT0);	//Externa interrupts sker på INT1 & INT0
 }
 
 
