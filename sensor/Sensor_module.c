@@ -31,11 +31,11 @@ void enable_clocks(void);
 void enable_sensors(void);
 
 
-ISR(TIMER2_OVF_vect)	//Counting the time until next interrupt
+ISR(TIMER2_OVF_vect)	//Tidsräkning tills nästa avbrott från halleffektsensorn
 {
 	timer0_overflow++;
 		
-	if(timer0_overflow >= 255)	 //If a measurement takes longer than ~260ms we define that as the car not moving
+	if(timer0_overflow >= 255)	 //Om en mätning tar längre än tid ca 260ms så säger vi att bilen står stilla
 	{
 		set_zero(time_sec0, 2);
 		median_time0 = 0;
@@ -45,7 +45,7 @@ ISR(TIMER2_OVF_vect)	//Counting the time until next interrupt
 	
 	timer1_overflow++;
 		
-	if(timer1_overflow >= 255)  //If a measurement takes longer than ~260ms we define that as the car not moving
+	if(timer1_overflow >= 255)  //Om en mätning tar längre än tid ca 260ms så säger vi att bilen står stilla
 	{
 		set_zero(time_sec1, 2);
 		median_time1 = 0;
@@ -54,16 +54,16 @@ ISR(TIMER2_OVF_vect)	//Counting the time until next interrupt
 }
 
 
-ISR(INT0_vect)	//Interrupt when the hall sensor is responding to a magnetic field
+ISR(INT0_vect)	//Avbrott då magnetsensorn känner av en magnet
 {
-	shift(time_sec0, 2);	//shifting the measurements in the  array 
+	shift(time_sec0, 2);	//Skiftar tidsmätningarna (i arrayen)
 	time_sec0[0] = timer0_overflow;
 	median_time0 = median(time_sec0);
 	timer0_overflow = 0;	
 }
 
 
-ISR(INT1_vect)	//Same as above but for the other wheel
+ISR(INT1_vect)	//Samma som ovan fast för andra hjulet
 {
 	shift(time_sec1, 2);
 	time_sec1[0] = timer1_overflow;
@@ -72,13 +72,13 @@ ISR(INT1_vect)	//Same as above but for the other wheel
 }
 
 
-int cmpfunc (const void * a, const void * b)	//helpfunction to sort the measurements in increasing order
+int cmpfunc (const void * a, const void * b)	//Hjälpfunktion för att sortera värden i storleksordning
 {
 	return ( *(uint16_t*)a - *(uint16_t*)b );
 }
 
 
-uint16_t median(uint16_t time[])	//beräkning av median
+uint16_t median(uint16_t time[])	//Beräkning av median
 {
 	uint16_t time_copy[] = {time[0], time[1], time[2]};
 	qsort(time_copy, 3, sizeof(uint16_t), cmpfunc);
@@ -86,7 +86,7 @@ uint16_t median(uint16_t time[])	//beräkning av median
 }
 
 
-void shift(uint16_t array[], int n)		//shifting an array with n elements ONE time
+void shift(uint16_t array[], int n)		//Skiftar en array med n element EN gång
 {
 	for(int i = n; i > 0; i--)
 	{
@@ -95,7 +95,7 @@ void shift(uint16_t array[], int n)		//shifting an array with n elements ONE tim
 }
 
 
-void set_zero(uint16_t time[], int n)	//resets an array with n elements
+void set_zero(uint16_t time[], int n)	//Nollställer en array med n element
 {
 	for(int i = 0; i <= n; i ++)
 	{
@@ -104,7 +104,7 @@ void set_zero(uint16_t time[], int n)	//resets an array with n elements
 }
 
 
-void spiInit(void) // enabling SPI
+void spiInit(void) //Aktiverar SPI
 {	
 	DDR_SPI = (1<<DD_MISO);
 	SPCR = (1<<SPE)|(0<<CPOL)|(0<<CPHA)|(1<<SPIE)|(1<<SPR1);
@@ -112,18 +112,18 @@ void spiInit(void) // enabling SPI
 }
 
 
-//Interrupt for sensor module, the variable send = the 4 bytes which we're gonna send [fyll i med något om 4 bytes är för mycket]
+//Avbrott för sensormodul, byt ut variabeln send mot de 4 bytes som ska skickas [fyll i med något om 4 bytes är för mycket]
 ISR(SPI_STC_vect)
 {
 	uint8_t inbyte;
-	//read Data Register
+	//SPI-register
 	inbyte = SPDR;
 	switch (state)
 	{
 		case 'W':
 			if (inbyte == 0xFF)
 			{
-				//convert to an array of bytes
+				//Konverterar en array med bytes
 				SPDR = (uint8_t)(median_time0  & 0xff);
 				data[0] = (uint8_t)(median_time0  & 0xff);
 				data[1] = (uint8_t)((median_time0 >> 8) & 0xff);
@@ -148,17 +148,17 @@ ISR(SPI_STC_vect)
 
 void enable_clocks(void)
 {
-	TCNT2 = 0;			//a special slower clock
-	TIMSK2 = (1 << TOIE2);		//enable overflow_interrupts
-	TCCR2B = (1 << CS21) | (1 << CS20);//	 (1 << CS22);// | (1 << CS20);		//startar timer_counter0
+	TCNT2 = 0;				//Nollställer klockan
+	TIMSK2 = (1 << TOIE2);			//Aktiverar overflow_interrupts
+	TCCR2B = (1 << CS21) | (1 << CS20); 	//Startar timer_counter2
 }
 
 
 void enable_sensors(void)
 {
-	DDRD = 0x00;			//datadirection to input D-reg
-	EICRA = (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00);	//interrupts at a rising edge
-	EIMSK = (1 << INT1) | (1 << INT0);	//extern interrupts happens at INT1 & INT0
+	DDRD = 0x00;			//Datariktning till input D-reg
+	EICRA = (1 << ISC11) | (1 << ISC10) | (1 << ISC01) | (1 << ISC00);	//Sätter avbrott vid hög flank
+	EIMSK = (1 << INT1) | (1 << INT0);	//Externa interrupts sker på INT1 & INT0
 }
 
 
@@ -167,7 +167,7 @@ int main(void)
 	enable_clocks();
 	enable_sensors();
 	spiInit();
-	sei();				//enabling interrupts
+	sei();				//Aktiverar avbrott
 	
     while(1)
     {}

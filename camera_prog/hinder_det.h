@@ -4,13 +4,15 @@
 #include <vector>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
+#ifdef _arm_
 #include <raspicam/raspicam_cv.h>
+#endif
 
 using namespace std;
 using namespace cv; 
 
 /*
- * An object with a color
+ * Ett färgat objekt eller markering
  */
 class ColoredObject
 {
@@ -24,38 +26,38 @@ class ColoredObject
 	virtual ~ColoredObject() {}
 
 	/*
-	 * Calculates the closest angle to the obstictle
+	 * Beräknar vinkeln till objektets närmsta hörn
 	 */
 	double angleClose();
 
 	/*
-	 * Calculates the furthest angle to the obstictle
+	 * Beräknar vinkeln till objektets bortre hörn
 	 */
 	double angleFar();
 
 	/*
-     * Calculates the distance straight forward to the obsticle
+     * Beräknar avståndet "rakt fram" till objektet
  	 */
 	double yDistance();
 	
 	/*
- 	 * Calculates the distance to the obsticle
+ 	 * Beräknar det totala avståndet till objektet
  	 */
 	double distance(double angle);
 };
 
 /*
- * Detect colored objects in image
+ * Upptäcker färgade objekt i bilden
  */
 Mat detectionOfColor(Mat camera_img, int* lowHSV, int* highHSV);
 
 /* 
- * Detect lines in image
+ * Upptäcker linjer i bilden
  */
 Mat detectLines(Mat camera_img);
 
 /*
- * Calculate pixels to a obstical
+ * Skapar rektanglar av pixelklumpar
  */
 vector<ColoredObject> framedObjects(Mat imgThresholded);
 
