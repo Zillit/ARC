@@ -45,7 +45,7 @@ while True:
                 lista = lista[lista.find("\n")+1:]
                 continue
             sender.send_string("%i %i %i" % (ID, dist, angle)) # Send ID, distance and angle via ZMQ
-            print("%i %i %i" % (ID, dist, angle)) # Temporary, remove later
+            #print("%i %i %i" % (ID, dist, angle)) # Temporary, remove later
             lista = lista[lista.find("\n")+1:] # Remove transmitted data from string
 
 
