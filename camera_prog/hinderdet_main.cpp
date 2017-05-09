@@ -40,13 +40,11 @@ int main()
                 
       Camera.grab();
                 
-      Camera.retrieve(imgOriginal); // read a new frame from video
+      Camera.retrieve(imgOriginal);
         
       Mat all_green = detectionOfColor(imgOriginal, lhsv, hhsv);
       Mat black = detectionOfColor(imgOriginal, lb, hb);
-      //Mat lines = detect_lines(imgOriginal);
                 
-      //imshow("lines",lines);
       imshow("all_green", all_green);
       imshow("imgOriginal", imgOriginal);
       imshow("Black", black);
@@ -61,13 +59,22 @@ int main()
             
          if(object[n].distance(object[n].angleClose()) < 2)
          {
-            zmq::message_t request (6);
-            memcpy (request.data (), "Object", 6);
-            std::cout << "Sending Object" << std::endl;
-            socket.send (request);
-                    
-            zmq::message_t reply;
-            socket.recv (&reply);
+			string string_to_send = to_string((int)round(100 * object[n].distance(object[n].angleClose())));
+			string_to_send += " " + to_string((int)round(object[n].angleClose()));
+			string_to_send += " " + to_string((int)round(object[n].angleFar()));
+			
+			cout << " String to send: " << string_to_send << endl;
+			
+			if(string_to_send.size() <= 32)
+			{
+				zmq::message_t request (string_to_send.size());
+				memcpy (request.data (), "Object", string_to_send.size());
+				std::cout << "Sending Object" << std::endl;
+				socket.send (request);
+						
+				zmq::message_t reply;
+				socket.recv (&reply);
+			}
          }
       }
          
@@ -75,7 +82,7 @@ int main()
       {
          for(int n{}; n < goal_line.size(); n++)
          {
-            cout << goal_line[n].yDistance()  << ", ";
+            cout << " Goal line: " << goal_line[n].yDistance()  << ", ";
             if(goal_line[n].yDistance() < 0.5)
             {
                z = 0;
@@ -94,7 +101,7 @@ int main()
       if(num_laps >= NUM_LAPS)
       {
             zmq::message_t request (4);
-            memcpy (request.data (), "Stop", 4);
+            memcpy (request.data (), "ARCCAR stop", 4);
             std::cout << "Sending Goal_line" << std::endl;
             socket.send (request);
                 
