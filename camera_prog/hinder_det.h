@@ -4,7 +4,9 @@
 #include <vector>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
+#ifdef _arm_
 #include <raspicam/raspicam_cv.h>
+#endif
 
 using namespace std;
 using namespace cv; 

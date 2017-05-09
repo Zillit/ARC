@@ -20,16 +20,29 @@ int main()
         
    int lb[] = {0, 0, 0};
    int hb[] = {255, 255, 30};
-
+   
+#ifdef _arm_
    raspicam::RaspiCam_Cv Camera;
    Camera.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
    Camera.set(CV_CAP_PROP_FRAME_WIDTH, 320);
-
+   
    if ( !Camera.open() )  
    {
       cout << "Cannot open the web cam" << endl;
       return -1;
    }
+
+#else
+   VideoCapture Camera(0); //capture the video from web cam
+   
+   if ( !Camera.isOpened() )  
+   {
+      cout << "Cannot open the web cam" << endl;
+      return -1;
+   }
+
+#endif
+
     
    int num_laps = 0;
    int z = 1;
