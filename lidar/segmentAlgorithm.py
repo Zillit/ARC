@@ -3,6 +3,7 @@ import bluetooth
 import time
 import spidev
 import zmq
+import math
 #from multiprocessing import Process, Value
 
 
@@ -29,8 +30,9 @@ i=0
 #Auto_bool = True
 #distThresh = 40
 stopThresh = 30
-startSpeed = 138
-controlConst = 0.25
+startSpeed = 158
+controlConst = 0.9
+closeConst = 1.0
 diff = 20 # Vilken funkar bäst? 18 eller 20 eller något annat?
 theta_min = 285 + diff
 theta_max = 75 + diff
@@ -188,9 +190,12 @@ def main():
                                                         angular = 6
                                                 else:
                                                         angular = int(angular*47/55-11)
-                                                speed = int(startSpeed+20*(1-(1/60)*abs(53-angular))*(1/600)*min(targetDist,500)*controlConst)
+                                                #if (targetDist < 60):
+                                                #        speed = int(startSpeed+20*(1-(1/60)*abs(53-angular)*closeConst*(1/100)*min(targetDist,100)*controlConst))
+                                                #else:
+                                                speed = int(startSpeed+20*(1-(1/100)*min(targetDist,100)*controlConst)*(1/60)*abs(53-angular))
                                                  ###   Hastighet   ###
-                                                if (targetDist > stopThresh):
+                                                if (targetDist > stopThresh):   
                                                         spi.xfer2([speed],250000,1,8)
                                                 else:
                                                         spi.xfer2([128],250000,1,8)

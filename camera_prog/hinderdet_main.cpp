@@ -21,14 +21,14 @@ int main()
    int lb[] = {0, 0, 0};
    int hb[] = {255, 255, 30};
    
-#ifdef _arm_
+#ifdef __arm__
    raspicam::RaspiCam_Cv Camera;
    Camera.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
    Camera.set(CV_CAP_PROP_FRAME_WIDTH, 320);
    
    if ( !Camera.open() )  
    {
-      cout << "Cannot open the web cam" << endl;
+      cout << "Cannot open the web cam on raspi" << endl;
       return -1;
    }
 
@@ -37,7 +37,7 @@ int main()
    
    if ( !Camera.isOpened() )  
    {
-      cout << "Cannot open the web cam" << endl;
+      cout << "Cannot open the web cam on lap" << endl;
       return -1;
    }
 
