@@ -4,7 +4,7 @@
 #include <vector>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "defines.h"
-#ifdef _arm_
+#ifdef __arm__
 #include <raspicam/raspicam_cv.h>
 #endif
 
