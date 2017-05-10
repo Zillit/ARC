@@ -30,11 +30,15 @@ User name (user): arc, password: stavarett
 User name (car): pi, password: stavarett
 
 To compile the graphicTest file compile through command while in the graphicTest/depthFolder/graphicsMain.
-Write make in the terminal.
+Write make in the terminal or simple write make and the makefile will compile it for you.
 //gcc graphics.cpp -c -o mainGraphics.o -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES
 //g++ mainGraphics.o ../../common/*.c ../../common/Linux/*.c ../../common/*.cpp -lGL -o mainGraphics -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm -fpermissive
 This will create a exicutable named mainGraphics that takes simple keyboard commands and display a world.
 
+Communication should be established by watchdog or shell script on devices. If not make sure to run the following
+python proxy.py on the proxy server.
+python user_ssh.py on the user side.
+python(3?) arc_ssh.py on the car. Pilot algoritm needs to run and communicate with arc_ssh.py.
 
 Make sure the pi is connected to the server:
 Install autossh, crontab.

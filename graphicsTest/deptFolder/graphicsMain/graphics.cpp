@@ -586,7 +586,7 @@ void display(void)
     glutSwapBuffers();
 }
 
-void setUpCamera()
+void setUpKeyboardFunction()
 {
     void cameraManipulationInput(unsigned char, int, int);
     //Setup for the keyboard interrupt function
@@ -682,6 +682,9 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         car.disableAutoPilot();
         car.setSpeed(0, 0);
         break;
+    case 'c':
+        // system("../../../python user_ssh.py");
+        break;
     // case 'v':
     //     break;
     default:
@@ -704,6 +707,17 @@ void cleanupSocketAtExit()
 }
 int main(int argc, char *argv[])
 {
+//Function for correctly setting up OpenGL
+    glutInit(&argc, argv);
+    glutInitContextVersion(3, 2);
+    glutInitWindowSize(1200, 1200);
+    glutCreateWindow(WINDOW_NAME.c_str());
+    glutDisplayFunc(display);
+    glutRepeatingTimer(20);
+    init();
+    setUpKeyboardFunction();
+
+    //Setting up everything else.
     CarPilot car;
     atexit(cleanupSocketAtExit);
     thread first(fetchLADARPoints);
@@ -713,23 +727,9 @@ int main(int argc, char *argv[])
     //  Subscribe to id, is nothing
     const char *filter = (argc > 1) ? argv[1] : "";
     subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen(filter));
-
-//Function for correctly setting up OpenGL
-    glutInit(&argc, argv);
-    glutInitContextVersion(3, 2);
-    glutInitWindowSize(1200, 1200);
-    glutCreateWindow(WINDOW_NAME.c_str());
-    glutDisplayFunc(display);
-    glutRepeatingTimer(20);
-    init();
-    setUpCamera();
-    vector<cameraSample> testVector{};
-    for (int it = 0; it < 2000; it++)
-    {
-        cameraSample temp{rand() % FLOOR_DEPT_RES, rand() % FLOOR_DEPT_RES};
-        testVector.push_back(temp);
-    }
     marchingSquereModel = generateFlatTerrrain();
     paintLadarPoints(ladarPoints, modelCoords, marchingSquereModel);
+
+//Initolising the main loop
     glutMainLoop();
 }
