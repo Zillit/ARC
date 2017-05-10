@@ -443,14 +443,14 @@ void paintLadarPoints(boost::circular_buffer<pair<GLfloat, GLfloat>> &ladarPoint
     //Lock for thread saftey
     boost::lock_guard<boost::mutex> guard(ladarPointsMutex);
     map<pair<GLfloat, GLfloat>, GLfloat> tempMap;
-    for (it : ladarPoints)
+    for (auto it : ladarPoints)
     {
         pair<GLfloat, GLfloat> temp{it.first - translation.m[3], +it.second - translation.m[11]};
         if (pairInRange(temp))
             findSurroundingCoords(vec3(temp.first, 0, temp.second), 5, 0.1, tempMap);
         // modifyFloorY(temp.first, temp.second, it.second, marchingSquereModel);
     }
-    for (it : tempMap)
+    for (auto it : tempMap)
     {
         modifyFloorY(it.first.first, it.first.second, it.second, m);
     }
