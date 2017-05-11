@@ -76,6 +76,8 @@ GLint MAX_SPEED = 5;
 GLint MIN_SPEED = 0;
 GLint MIN_THETA = -47;
 GLint MAX_THETA = 47;
+GLint AIM_MILLISECONDS = 333;
+GLint LOOK_AHEAD_TARGET=10;
 
 boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
 //Required to provide thread safty
@@ -86,7 +88,7 @@ vec3 CAM_POS{0, 5, 40}, TARGET{0, 0, 25}, UP{0, 1, 0};
 mat4 modelCoords;
 GLfloat PI = 3.1415927;
 //-70 seems good to compensate for what is sent.
-GLfloat LADAR_ANGLE_OFFSET = -70;//(-0.5)*PI/180; //LADAR does consider straigth ahead to be angle 0.
+GLfloat LADAR_ANGLE_OFFSET = -70; //(-0.5)*PI/180; //LADAR does consider straigth ahead to be angle 0.
 //Declaration of thread.
 thread first;
 //Rotation of a model, to show if the program is working
@@ -99,7 +101,7 @@ zmq::context_t context(1);
 zmq::socket_t subscriber(context, ZMQ_SUB);
 zmq::socket_t requester(context, ZMQ_REQ);
 
-//Class incapsulating 
+//Class incapsulating
 class CarPilot
 {
   public:
@@ -114,14 +116,14 @@ class CarPilot
         theta = newTheta;
     };
     void carTick();
-    void setCurrentSpeedBasedOnSensors(float speed){}
+    void setCurrentSpeedBasedOnSensors(float speed) {}
     void sendMessage(string message);
     static char *s_recv(void *socket);
     static int s_send(void *socket, char *string);
     void paintPlan(Model *map);
-    void toggleAutoPilot() {auto_pilot=!auto_pilot;};
-    void changeDepthOfThetaSearch(int delta) {depth_of_theta_search=std::max(depth_of_theta_search+delta,1);};
-    void disableAutoPilot() {auto_pilot=false;};
+    void toggleAutoPilot() { auto_pilot = !auto_pilot; };
+    void changeDepthOfThetaSearch(int delta) { depth_of_theta_search = std::max(depth_of_theta_search + delta, 1); };
+    void disableAutoPilot() { auto_pilot = false; };
     void printVariables();
 
   private:
@@ -129,14 +131,17 @@ class CarPilot
     string instruction = "";
     int speed = 0;
     int theta = 0;
-    float current_speed=0;
+    int new_aim_threshold = 8;
+    float current_speed = 1;
     bool update_car_pilot = false;
-    int depth_of_theta_search = 1;
+    int depth_of_theta_search = 100; //Should never be nigher then -1 of PLANNING_DEPTH
     std::chrono::time_point<std::chrono::system_clock> clock_last = chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::system_clock> clock_aim_last = chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration_between_updates = chrono::milliseconds(200);
+    std::chrono::duration<double> duration_between_aim = chrono::milliseconds(AIM_MILLISECONDS);
     std::vector<pair<GLint, GLint>> planned_path;
     GLfloat con_of_path_search_increase = 2;
-    bool auto_pilot=false;
+    bool auto_pilot = false;
 };
 void CarPilot::printVariables()
 {
@@ -157,24 +162,34 @@ void modifyFloorY(GLint, GLint, GLfloat, Model *, bool);
 //Updates driving instruction and keep in contact with the hardware
 void CarPilot::carTick()
 {
-    if(auto_pilot)
+    auto clock_now = chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dTime = clock_now - clock_last;
+    std::chrono::duration<double> dTime_aim = clock_now - clock_aim_last;
+    if (auto_pilot && (dTime_aim > duration_between_aim))
     {
-        int counter=0;
-        int deltaTheta=0;
-        for(auto it : planned_path)
+        int counter = 0;
+        int middleX = 0;
+        int futureMiddleX = 0;
+        for (int it = 0; it < planned_path.size() - 1; it++)
         {
-            if(counter > depth_of_theta_search)
+            //Makes sure that the depth of the interesting part of the plan is not overriden.
+            if (counter > depth_of_theta_search)
             {
                 break;
             }
-            deltaTheta+=it.first+it.second-MAP_MIDDLE_X;
+            middleX = planned_path.at(it).first + planned_path.at(it).second - MAP_MIDDLE_X;
+            futureMiddleX = planned_path.at(it + 1).first + planned_path.at(it + 1).second - MAP_MIDDLE_X;
+            if (std::abs(middleX - futureMiddleX) > new_aim_threshold)
+            {
+                setSpeed(MAX_SPEED, std::atan2(counter * LADAR_SCALER, futureMiddleX * LADAR_SCALER) * 180 / PI);
+                return;
+            }
             counter++;
         }
-        changeDirection(deltaTheta);
-        setSpeed(MAX_SPEED, theta);
+        int defualt_x_coord=planned_path.at(std::min(depth_of_theta_search,(int)(LOOK_AHEAD_TARGET*current_speed))).first+planned_path.at(std::min(depth_of_theta_search,(int)(LOOK_AHEAD_TARGET*current_speed))).second-MAP_MIDDLE_X;
+        setSpeed(MAX_SPEED, std::atan2(counter * LADAR_SCALER,  defualt_x_coord* LADAR_SCALER) * 180 / PI);
+        clock_aim_last = chrono::high_resolution_clock::now();
     }
-    auto clock_now = chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dTime = clock_now - clock_last;
     if (update_car_pilot && auto_pilot)
     {
         planRoad();
@@ -225,13 +240,13 @@ GLfloat getFloorY(GLint, GLint, Model *);
 //Will give a representtation of the planed path on the map
 void CarPilot::paintPlan(Model *map)
 {
-    int endDepth=planned_path.size();
+    int endDepth = planned_path.size();
     for (int iter = 1; iter < endDepth; iter++)
     {
         // cout << iter << "start: " << planned_path.at(iter).first << " and width: " << planned_path.at(iter).second << endl;
-        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), marchingSquereModel, false);
-        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second + 1, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), marchingSquereModel, false);
-        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second - 1, FLOOR_DEPT_RES-iter, std::min(MAX_SPEED,endDepth-iter), marchingSquereModel, false);
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second, FLOOR_DEPT_RES - iter, std::min(MAX_SPEED, endDepth - iter), marchingSquereModel, false);
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second + 1, FLOOR_DEPT_RES - iter, std::min(MAX_SPEED, endDepth - iter), marchingSquereModel, false);
+        modifyFloorY(planned_path.at(iter).first + planned_path.at(iter).second - 1, FLOOR_DEPT_RES - iter, std::min(MAX_SPEED, endDepth - iter), marchingSquereModel, false);
     }
 }
 //Generate a clear path based on the information on the marching squere
@@ -240,41 +255,41 @@ void CarPilot::planRoad()
     int xStart, xEnd;
     planned_path.clear();
     //For initilizing the algoritm.
-    pair<int, int> clearSpace = {MAP_MIDDLE_X-2, 4};
+    pair<int, int> clearSpace = {MAP_MIDDLE_X - 2, 4};
     planned_path.push_back(clearSpace);
     for (int depthIterator = 1; depthIterator < PLANNING_DEPTH; depthIterator++)
     {
-        xStart = std::max((int)PLANNING_MAX_LEFT, (int)(MAP_MIDDLE_X - depthIterator * con_of_path_search_increase-3));
-        xEnd = std::min((int)PLANNING_MAX_RIGHT, (int)(MAP_MIDDLE_X + depthIterator * con_of_path_search_increase+3));
+        xStart = std::max((int)PLANNING_MAX_LEFT, (int)(MAP_MIDDLE_X - depthIterator * con_of_path_search_increase - 3));
+        xEnd = std::min((int)PLANNING_MAX_RIGHT, (int)(MAP_MIDDLE_X + depthIterator * con_of_path_search_increase + 3));
         int xFirstOpenSpace = -1;
         int openSpaceDistance = -1;
         bool hasFoundOpenSpace = false;
         for (int widthIterator = xStart; widthIterator < xEnd; widthIterator++)
         {
-            if (getFloorY(widthIterator, FLOOR_DEPT_RES-depthIterator, marchingSquereModel) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE)
+            if (getFloorY(widthIterator, FLOOR_DEPT_RES - depthIterator, marchingSquereModel) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE)
             {
                 hasFoundOpenSpace = true;
                 xFirstOpenSpace = widthIterator;
-                while ((getFloorY(widthIterator, FLOOR_DEPT_RES-depthIterator, marchingSquereModel) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE) && (widthIterator < xEnd))
+                while ((getFloorY(widthIterator, FLOOR_DEPT_RES - depthIterator, marchingSquereModel) < MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE) && (widthIterator < xEnd))
                 {
                     widthIterator++;
                     openSpaceDistance++;
                 }
             }
-            if ((clearSpace.second < openSpaceDistance) && (planned_path.back().first<(xFirstOpenSpace+openSpaceDistance)) && ((planned_path.back().first+planned_path.back().second)>xFirstOpenSpace))
+            if ((clearSpace.second < openSpaceDistance) && (planned_path.back().first < (xFirstOpenSpace + openSpaceDistance)) && ((planned_path.back().first + planned_path.back().second) > xFirstOpenSpace))
             {
                 clearSpace = {xFirstOpenSpace, openSpaceDistance};
             }
         }
         if (hasFoundOpenSpace)
         {
-            clearSpace.second=clearSpace.second/2;
+            clearSpace.second = clearSpace.second / 2;
             planned_path.push_back(clearSpace);
         }
         else
         {
             //Destroy a few parts of the planned path in order to avoid collision.
-            for(int i=0;i<4;i++)
+            for (int i = 0; i < 4; i++)
             {
                 planned_path.pop_back();
             }
@@ -303,7 +318,7 @@ bool pairInRange(pair<GLint, GLint> p)
 {
     return (p.first > 0 && p.first < FLOOR_WIDTH_RES && p.second > 0 && p.second < FLOOR_DEPT_RES);
 }
-//For making the hight bubbles. The range can be addaptedd as to making sure the car is not allowed to drive to close to the walls 
+//For making the hight bubbles. The range can be addaptedd as to making sure the car is not allowed to drive to close to the walls
 void findSurroundingCoords(vec3 coords, GLuint range, GLfloat falloff, map<pair<GLfloat, GLfloat>, GLfloat> &mapObj)
 {
     GLuint dubbleRange = range * range;
@@ -345,7 +360,7 @@ void clearFloorY(Model *m)
         m->vertexArray[iter * 3 + 1] = 0;
     }
 }
-//Function for checking the hight of a vertices 
+//Function for checking the hight of a vertices
 GLfloat getFloorY(GLint x, GLint z, Model *m)
 {
     return m->vertexArray[(x + z * FLOOR_WIDTH_RES) * 3 + 1];
@@ -499,7 +514,7 @@ void init(void)
     rotationMatrix = IdentityMatrix();
     total = IdentityMatrix();
     // camMatrix = lookAt(0, 5, 15, 0, 0, 0, 0, 1, 0); //T(0,0,-2);
-    updateCamera(CAM_POS,TARGET);
+    updateCamera(CAM_POS, TARGET);
     // Load and compile shader
     program = loadShaders("persp.vert", "persp.frag");
     m = LoadModelPlus("bunny.obj");
@@ -528,7 +543,7 @@ void ladarPointsAdd(pair<GLfloat, GLfloat> point)
     boost::lock_guard<boost::mutex> guard(ladarPointsMutex);
     ladarPoints.push_back(point);
 }
-//Thread for listening to the publicer. 
+//Thread for listening to the publicer.
 void fetchLADARPoints()
 {
     string instruction;
@@ -626,10 +641,11 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         MAX_SPEED--;
         break;
     case '6':
-        car.changeDepthOfThetaSearch(-1);
+        LOOK_AHEAD_TARGET--;
         break;
     case '7':
-        car.changeDepthOfThetaSearch(+1);
+        LOOK_AHEAD_TARGET++;
+        cout << "LOOK_AHEAD_TARGET: " << LOOK_AHEAD_TARGET << endl;
         break;
     case '8':
         car.printVariables();
@@ -707,7 +723,7 @@ void cleanupSocketAtExit()
 }
 int main(int argc, char *argv[])
 {
-//Function for correctly setting up OpenGL
+    //Function for correctly setting up OpenGL
     glutInit(&argc, argv);
     glutInitContextVersion(3, 2);
     glutInitWindowSize(1200, 1200);
@@ -730,6 +746,6 @@ int main(int argc, char *argv[])
     marchingSquereModel = generateFlatTerrrain();
     paintLadarPoints(ladarPoints, modelCoords, marchingSquereModel);
 
-//Initolising the main loop
+    //Initolising the main loop
     glutMainLoop();
 }
