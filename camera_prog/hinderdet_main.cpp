@@ -33,8 +33,8 @@ int main()
    }
 
 #else
-   VideoCapture Camera(0); //capture the video from web cam
-   
+   VideoCapture Camera(0);
+      
    if ( !Camera.isOpened() )  
    {
       cout << "Cannot open the web cam on lap" << endl;
@@ -43,7 +43,7 @@ int main()
 
 #endif
 
-    
+   // Används för mållinje 
    int num_laps = 0;
    int z = 1;
 
@@ -54,17 +54,25 @@ int main()
       Camera.grab();
                 
       Camera.retrieve(imgOriginal);
-        
+      
       Mat all_green = detectionOfColor(imgOriginal, lhsv, hhsv);
       Mat black = detectionOfColor(imgOriginal, lb, hb);
-                
+      Mat lines = detectLines(imgOriginal);
+      vector<Vec4i> num_line = linesInImage(lines);
+      
+      for( size_t i = 0; i < num_line.size(); i++ )
+      {
+          Vec4i l = num_line[i];
+          line( lines, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
+      }
+                     
       imshow("all_green", all_green);
       imshow("imgOriginal", imgOriginal);
       imshow("Black", black);
+      imshow("Lines", lines);
       waitKey(30);
         
       vector<ColoredObject> object = framedObjects(all_green);
-      vector<ColoredObject> goal_line= framedObjects(black);
 
       for(int n = 0; n < object.size(); n++)
       {
@@ -77,7 +85,7 @@ int main()
 			string_to_send += " " + to_string((int)round(object[n].angleFar()));
 			
 			cout << " String to send: " << string_to_send << endl;
-			
+			/*
 			if(string_to_send.size() <= 32)
 			{
 				zmq::message_t request (string_to_send.size());
@@ -88,8 +96,12 @@ int main()
 				zmq::message_t reply;
 				socket.recv (&reply);
 			}
+			*/
          }
       }
+      
+      //Viktigt för mållinje ---------------
+      vector<ColoredObject> goal_line= framedObjects(black);
          
       if(!goal_line.empty())
       {
@@ -110,7 +122,7 @@ int main()
       }	
 		
       cout << num_laps << endl;
-
+      /*
       if(num_laps >= NUM_LAPS)
       {
             zmq::message_t request (4);
@@ -120,7 +132,10 @@ int main()
                 
             zmq::message_t reply;
             socket.recv (&reply);
-      } 
+      }
+      */
+      //----------------------------------------- 
+      
    }
    return 0;
 }

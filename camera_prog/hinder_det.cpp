@@ -46,6 +46,19 @@ Mat detectLines(Mat camera_img)
 	return dst;
 }
 
+vector<Vec4i> linesInImage(Mat camera_img)
+{
+	Mat dst;
+	
+	Canny(camera_img, dst, 50, 200, 3);
+	 
+	vector<Vec4i> lines;
+	
+	HoughLinesP(dst, lines, 1, CV_PI/180, 50, 50, 10 );
+	
+	return lines;
+}
+
 
 vector<ColoredObject> framedObjects(Mat img_thresholded)
 {
