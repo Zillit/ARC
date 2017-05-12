@@ -43,7 +43,8 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "typeinfo": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "algorithm": "cpp"
     },
     "python.formatting.provider": "yapf"
 }

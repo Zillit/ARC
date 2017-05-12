@@ -11,6 +11,10 @@ spi_styr = spidev.SpiDev()
 spi_styr.open(0,0)
 spi_styr.mode = 0b00
 
+spi_sens = spidev.SpiDev()
+spi_sens.open(0,1) # Shit works yo
+spi_sens.mode = 0b00
+
 context = zmq.Context()
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5565")
@@ -28,6 +32,11 @@ LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
+
+def sensor_transmit():
+    	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
+	data = str(resp[1])+str(resp[3])) # Gör om till en sträng
+	return data # Returnera
 
 def generateFaceLadarThread(threadName,delay):
     print("Started thread %s" % threadName)
@@ -50,7 +59,7 @@ def sendRealDataThread(threadName,delay):
             mess = LIDARsub.recv_string()
             id, distance, angle = mess.split()
             #print mess             
-            ARCpub.send_string("%i %i \n" %(int(angle), int(distance)))
+            ARCpub.send_string("%s %i %i \n" %("LADAR", int(angle), int(distance)))
         except KeyboardInterrupt:
             ARCpub.close()
             USERrep.close()
@@ -68,6 +77,9 @@ def sendCommandToSPI(thredName,delay,message):
             styr_transmit(speed)
             styr_transmit(theta)
             print("Recived request: %s" % message)
+            sensorData=sensor_transmit()
+            right, left=sensorData.split()
+            ARCpub.send_string("%s %i %i \n" %("SENSOR", right, left))
             sleep(delay)
             break
         except KeyboardInterrupt:

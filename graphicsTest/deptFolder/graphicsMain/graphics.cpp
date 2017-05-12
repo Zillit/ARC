@@ -72,12 +72,14 @@ GLuint PLANNING_DEPTH = 120;
 GLfloat MINIMUM_ALLOWED_HIGHT_OF_FLOOR_TO_BE_CONSIDERED_FREE = 0.5;
 GLuint MAXIMUM_LADAR_POINTS = 400;
 GLfloat LADAR_SCALER = 5;
-GLint MAX_SPEED = 5;
+GLint MAX_SPEED = 10;
 GLint MIN_SPEED = 0;
 GLint MIN_THETA = -47;
 GLint MAX_THETA = 47;
-GLint AIM_MILLISECONDS = 333;
-GLint LOOK_AHEAD_TARGET=10;
+GLint AIM_MILLISECONDS = 200;
+GLint LOOK_AHEAD_TARGET = 15;
+GLint TURN_SCALER = 1;
+GLint DISTANCE_SCALER = 1;
 
 boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
 //Required to provide thread safty
@@ -112,8 +114,8 @@ class CarPilot
     void changeDirection(int dTheta);
     void setSpeed(int newSpeed, int newTheta = 0)
     {
-        speed = newSpeed;
-        theta = newTheta;
+        speed = std::min(std::max(newSpeed, MIN_SPEED), MAX_SPEED);
+        theta = std::min(std::max(newTheta, MIN_THETA), MAX_THETA);
     };
     void carTick();
     void setCurrentSpeedBasedOnSensors(float speed) {}
@@ -121,18 +123,25 @@ class CarPilot
     static char *s_recv(void *socket);
     static int s_send(void *socket, char *string);
     void paintPlan(Model *map);
-    void toggleAutoPilot() { auto_pilot = !auto_pilot; };
+    void enableAutoPilot() { auto_pilot = true; };
+
     void changeDepthOfThetaSearch(int delta) { depth_of_theta_search = std::max(depth_of_theta_search + delta, 1); };
     void disableAutoPilot() { auto_pilot = false; };
     void printVariables();
+    void backup() { speed += -3; };
+    float getAngle(int x, int y);
+    void setSensorSpeed(int right, int left){rightSpeed=right; leftSpeed=left;};
 
   private:
     string address = "STYROR ";
     string instruction = "";
+    int call_to_toggle_autopilot = 0;
     int speed = 0;
     int theta = 0;
-    int new_aim_threshold = 8;
+    int new_aim_threshold = 4;
     float current_speed = 1;
+    int rightSpeed=0;
+    int leftSpeed=0;
     bool update_car_pilot = false;
     int depth_of_theta_search = 100; //Should never be nigher then -1 of PLANNING_DEPTH
     std::chrono::time_point<std::chrono::system_clock> clock_last = chrono::high_resolution_clock::now();
@@ -143,10 +152,15 @@ class CarPilot
     GLfloat con_of_path_search_increase = 2;
     bool auto_pilot = false;
 };
+float CarPilot::getAngle(int x, int y)
+{
+    float distance = std::sqrt(x * x + y * y);
+    return asin(x / distance) * 180 / PI;
+}
 void CarPilot::printVariables()
 {
     cout << "speed: " << speed << " theta: " << theta << " depth_of_theta_search: ";
-    cout << depth_of_theta_search << endl;
+    cout << depth_of_theta_search << " Look ahead target: " << LOOK_AHEAD_TARGET << "autopilot state: " << auto_pilot << endl;
 }
 void CarPilot::changeSpeed(int dV)
 {
@@ -162,16 +176,23 @@ void modifyFloorY(GLint, GLint, GLfloat, Model *, bool);
 //Updates driving instruction and keep in contact with the hardware
 void CarPilot::carTick()
 {
+    // cout << "theta: " << theta << endl;
     auto clock_now = chrono::high_resolution_clock::now();
     std::chrono::duration<double> dTime = clock_now - clock_last;
     std::chrono::duration<double> dTime_aim = clock_now - clock_aim_last;
     if (auto_pilot && (dTime_aim > duration_between_aim))
     {
+        planRoad();
         int counter = 0;
         int middleX = 0;
         int futureMiddleX = 0;
-        for (int it = 0; it < planned_path.size() - 1; it++)
+        // cout << "before " << planned_path.size() << endl;
+        planned_path.shrink_to_fit();
+        // cout << " after " << planned_path.size() << endl;
+        int angle;
+        for (int it = 0; it < planned_path.size(); it++)
         {
+
             //Makes sure that the depth of the interesting part of the plan is not overriden.
             if (counter > depth_of_theta_search)
             {
@@ -181,21 +202,31 @@ void CarPilot::carTick()
             futureMiddleX = planned_path.at(it + 1).first + planned_path.at(it + 1).second - MAP_MIDDLE_X;
             if (std::abs(middleX - futureMiddleX) > new_aim_threshold)
             {
-                setSpeed(MAX_SPEED, std::atan2(counter * LADAR_SCALER, futureMiddleX * LADAR_SCALER) * 180 / PI);
+                angle = getAngle(futureMiddleX, counter + 1);
+                setSpeed(MAX_SPEED, (int)angle); //std::atan2(counter * LADAR_SCALER, futureMiddleX * LADAR_SCALER) *TURN_SCALER* 180 / PI);
+                update_car_pilot = true;
+                sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
                 return;
             }
             counter++;
         }
-        int defualt_x_coord=planned_path.at(std::min(depth_of_theta_search,(int)(LOOK_AHEAD_TARGET*current_speed))).first+planned_path.at(std::min(depth_of_theta_search,(int)(LOOK_AHEAD_TARGET*current_speed))).second-MAP_MIDDLE_X;
-        setSpeed(MAX_SPEED, std::atan2(counter * LADAR_SCALER,  defualt_x_coord* LADAR_SCALER) * 180 / PI);
+        int defualt_x_coord = planned_path.at(std::min(depth_of_theta_search, (int)(LOOK_AHEAD_TARGET * current_speed))).first + planned_path.at(std::min(depth_of_theta_search, (int)(LOOK_AHEAD_TARGET * current_speed))).second - MAP_MIDDLE_X;
+        angle = getAngle(defualt_x_coord, std::min(depth_of_theta_search, (int)(LOOK_AHEAD_TARGET * current_speed)));
+        cout << "defualt_x_coord: " << defualt_x_coord << " Angle: " << angle << endl;
+        setSpeed(MAX_SPEED, (int)angle); //std::atan2(defualt_x_coord* LADAR_SCALER,-counter * LADAR_SCALER) *TURN_SCALER* 180 / PI);
         clock_aim_last = chrono::high_resolution_clock::now();
+        update_car_pilot = true;
     }
     if (update_car_pilot && auto_pilot)
     {
-        planRoad();
+
         sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
         // cout << address << " " << to_string(speed) <<" " << to_string(theta);
-        update_car_pilot = false;
+        clock_last = chrono::high_resolution_clock::now();
+    }
+    else if ((dTime > duration_between_updates) && auto_pilot)
+    {
+        sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
         clock_last = chrono::high_resolution_clock::now();
     }
     else if (dTime > duration_between_updates)
@@ -259,8 +290,10 @@ void CarPilot::planRoad()
     planned_path.push_back(clearSpace);
     for (int depthIterator = 1; depthIterator < PLANNING_DEPTH; depthIterator++)
     {
-        xStart = std::max((int)PLANNING_MAX_LEFT, (int)(MAP_MIDDLE_X - depthIterator * con_of_path_search_increase - 3));
-        xEnd = std::min((int)PLANNING_MAX_RIGHT, (int)(MAP_MIDDLE_X + depthIterator * con_of_path_search_increase + 3));
+        // xStart = std::max((int)PLANNING_MAX_LEFT, (int)(MAP_MIDDLE_X - depthIterator * con_of_path_search_increase - 3));
+        // xEnd = std::min((int)PLANNING_MAX_RIGHT, (int)(MAP_MIDDLE_X + depthIterator * con_of_path_search_increase + 3));
+        xStart = PLANNING_MAX_LEFT;
+        xEnd = PLANNING_MAX_RIGHT;
         int xFirstOpenSpace = -1;
         int openSpaceDistance = -1;
         bool hasFoundOpenSpace = false;
@@ -554,14 +587,25 @@ void fetchLADARPoints()
         while (subscriber.recv(&update))
         {
             std::istringstream iss(static_cast<char *>(update.data()));
-            iss >> angle >> distance;
-            GLfloat modDistance = distance / LADAR_SCALER;
-            GLfloat modAngle = angle - LADAR_ANGLE_OFFSET;
-            // cout << "modAngle: " << modAngle << " modDistance: " << modDistance << endl;
-            //Make sure that we do not care about data that is to close to the machine
-            if (modDistance > 5 && modDistance < 150) //&& 0 < modAngle && (angle - LADAR_ANGLE_OFFSET) < 180)
+            iss >> instruction >> angle >> distance;
+            if (instruction == "LADAR")
             {
-                ladarPointsAdd(generateLadarPointFromInputData(distance / LADAR_SCALER, (angle - LADAR_ANGLE_OFFSET) * PI / 180));
+                GLfloat modDistance = distance / LADAR_SCALER;
+                GLfloat modAngle = angle - LADAR_ANGLE_OFFSET;
+                // cout << "modAngle: " << modAngle << " modDistance: " << modDistance << endl;
+                //Make sure that we do not care about data that is to close to the machine
+                if (modDistance > 5 && modDistance < 150) //&& 0 < modAngle && (angle - LADAR_ANGLE_OFFSET) < 180)
+                {
+                    ladarPointsAdd(generateLadarPointFromInputData(distance / LADAR_SCALER, (angle - LADAR_ANGLE_OFFSET) * PI / 180));
+                }
+            }
+            else if (instruction=="SENSOR")
+            {
+                car.setSensorSpeed(angle, distance);
+            }
+            else 
+            {
+                cout << "Bad instruction" << endl;
             }
         }
         this_thread::sleep_for(chrono::microseconds(500));
@@ -621,7 +665,7 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     switch (key)
     {
     case 't':
-        car.toggleAutoPilot();
+        car.enableAutoPilot();
         break;
     // case 'c':
     //     system("ssh -t -p 4444 arc@nhikim91.ddns.net ssh -p 2222 pi@localhost");
@@ -701,8 +745,16 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     case 'c':
         // system("../../../python user_ssh.py");
         break;
-    // case 'v':
-    //     break;
+    case 'f':
+        TURN_SCALER++;
+        cout << "Turn Scaler: " << TURN_SCALER << endl;
+        break;
+    case 'v':
+        TURN_SCALER = max(1, TURN_SCALER - 1);
+        break;
+    case 'm':
+        car.backup();
+        break;
     default:
         break;
     }
