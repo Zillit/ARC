@@ -57,6 +57,11 @@ Mat detectionOfColor(Mat camera_img, int* lowHSV, int* highHSV);
 Mat detectLines(Mat camera_img);
 
 /*
+ * Return evry line in image
+ */
+vector<Vec4i> linesInImage(Mat camera_img);
+
+/*
  * Skapar rektanglar av pixelklumpar
  */
 vector<ColoredObject> framedObjects(Mat imgThresholded);
