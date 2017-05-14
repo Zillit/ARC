@@ -6,7 +6,7 @@ in vec3 fNormal;
 in vec3 fSurface;
 in vec3 fPosition;
 uniform sampler2D tex;
-
+uniform mat4 camMatrix;
 // Get the lighting
 // uniform vec3 lightSourcesDirPosArr[4];
 // uniform vec3 lightSourcesColorArr[4];
@@ -15,64 +15,24 @@ uniform sampler2D tex;
 
 void main(void)
 {
-	vec3 ambient = vec3(0.4,0.2,0.2);
-	// const vec3 vlight = vec3(0.58, 0.58, 0.58);
-	// float totlight, diffuse, phong, amoutDiffuse, shade;
+	vec3 ambient = vec3(0.5,0.2,0.2);
+	vec3 surfaceToCamera = normalize(vec3(camMatrix)-fSurface);
+	vec4 sidewaysLight=vec4(0.0,0.4,0.0,0.0);
+	vec4 sidewaysLightDirection=vec4(0.5,0.5,-0.5,0.0);
+	vec4 sidewaysLightPosition=vec4(-0.5,-0.5,0.5,0.0);
+	float diffuseCoefficient=max(0.0,dot(fNormal,normalize(sidewaysLightPosition.xyz)));
+	vec4 diffuseSideway=diffuseCoefficient*(texture(tex, fTexCoord))*sidewaysLight;
+	vec4 centerLight=vec4(0,0.5,0.9,0.0);
+	vec4 centerLightPosition=vec4(0.0,100.0,-64.0,0.0);
+	vec4 centerLightDirection=vec4(1.0,-1.0,0.5,0.0);
+	centerLightDirection=normalize(centerLightDirection);
+	vec3 surfaceToLight=normalize(centerLightPosition.xzy-fPosition);
+	float distanceToCenterLight=length(centerLightPosition.xyz-fPosition)/50;
+	float attenuation=1.0/(1.0+pow(distanceToCenterLight,2));
+	float diffuseCenterCoefficient=max(0.0,dot(fNormal,surfaceToLight));
+	
+	vec4 diffuseCenter=(texture(tex, fTexCoord))*attenuation*centerLight*pow(max(0.0, dot(surfaceToCamera, reflect(-surfaceToLight, fNormal))),1);
 
-	// phong = 1;
-
-	// diffuse = dot(normalize(fNormal),vlight);
-	// diffuse = max(0.0, diffuse);
-
-	// // Specular
-	// vec3 r = reflect(-vlight, normalize(fNormal));
-	// vec3 v = normalize(-fSurface); // View direction
-	// phong = dot(r, v);
-	// if (phong > 0.0)
-	// 	phong = 1.0 * pow(phong, 500.0);
-	// phong = max(phong, 0.0);
-
-	// amoutDiffuse = 0.7;
-	// totlight = amoutDiffuse * diffuse + (1.0 - amoutDiffuse) * phong;
-
-	// vec3 storeLight[4]; // To store the four different lights here to sum them up lateron
-	// for (int i=0; i < 4; i++) {
-	// 	vec3 vlight = vec3(lightSourcesDirPosArr[i]);
-	// 	float totlight, diffuse, phong, amoutDiffuse;
-	// 	vec3 r;
-
-	// 	// Diffuse
-	// 	diffuse = dot(normalize(fNormal),vlight);
-	// 	diffuse = max(0.0, diffuse);
-
-		
-	// 	if (isDirectional[i] == true) {
-	// 	// Directional
-	// 		r = reflect(-vlight, normalize(fNormal));
-	// 	} else {
-	// 	// Positional
-	// 		r = reflect(-(vlight-fSurface), normalize(fNormal));
-	// 	}
-	// 	vec3 v = normalize(-fSurface); // View direction
-	// 	phong = dot(normalize(r), v);
-	// 	if (phong > 0.0)
-	// 		phong = 1.0 * pow(phong, specularExponent[i]);
-	// 	phong = max(phong, 0.0);
-
-	// 	amoutDiffuse = 0.7;
-	// 	totlight = amoutDiffuse * diffuse + (1.0 - amoutDiffuse) * phong;
-		
-	// 	storeLight[i] = lightSourcesColorArr[i]*totlight;
-	// }
-	// // outColor = totlight*(texture(tex, fTexCoord));
-
-	// vec3 mixLight = ambient;
-	// for (int j=0; j<4; j++) {
-	// 	mixLight = mixLight + storeLight[j];
-	// }
-	// mixLight = mixLight / 4;
-	// vec4 totallight = texture(tex, fTexCoord);
-	// 	outColor = vec4(totallight[0] * mixLight[0],totallight[1] * mixLight[1],totallight[2] * mixLight[2],0.0)+vec4(0.1,0.1,0.1,0);
-	vec3 nP=normalize(fPosition);
-	outColor = clamp((texture(tex, fTexCoord)+vec4(ambient,0)+vec4(nP.xyz,0)),0,1);
+	vec3 nP=normalize(fPosition)*0.5;
+	outColor = clamp(diffuseSideway + diffuseCenter + vec4(ambient,0)*(texture(tex, fTexCoord))+vec4(nP.xyz,0),0,1);
 }

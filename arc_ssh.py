@@ -34,9 +34,8 @@ def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
 
 def sensor_transmit():
-    	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
-	data = str(resp[1])+str(resp[3])) # Gör om till en sträng
-	return data # Returnera
+    resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
+    return resp[1], resp[3]
 
 def generateFaceLadarThread(threadName,delay):
     print("Started thread %s" % threadName)
@@ -44,7 +43,7 @@ def generateFaceLadarThread(threadName,delay):
         try:
             angle=random.randrange(0,60)
             distance=random.randrange(10,3000)
-            ARCpub.send_string("l %i %i \n" %(angle, distance))
+            ARCpub.send_string("LADAR %i %i \n" %(angle, distance))
             sleep(delay)
         except KeyboardInterrupt:
             ARCpub.close()
@@ -70,20 +69,19 @@ def sendCommandToSPI(thredName,delay,message):
     while True:
         try:
             speed, theta =message[7:].split()
-            speed= int(speed)+128
+            speed= int(speed)+128+30
             theta= int(theta)+53
             print speed
             print theta
             styr_transmit(speed)
             styr_transmit(theta)
             print("Recived request: %s" % message)
-            sensorData=sensor_transmit()
-            right, left=sensorData.split()
+            right, left=sensor_transmit()
             ARCpub.send_string("%s %i %i \n" %("SENSOR", right, left))
             sleep(delay)
             break
         except KeyboardInterrupt:
-            break
+            break 
     return
     
     
