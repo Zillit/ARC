@@ -2,18 +2,7 @@
 #define DEFINES_H
 #include <string>
 using namespace std;
-namespace OPENGL
-{
-    const float LEFT_=-0.5;
-    const float RIGHT_=0.5;
-    const float NEAR_=1;
-    const float FAR_=300;
-    const float TOP_=0.5;
-    const float BOTTOM_=-0.5;
-    const int WINDOW_HIGHT=960;
-    const int WINDOW_WIDTH=1200;
-    const string WINDOW_NAME="ARC User Main Window V 0.1";
-}
+
 namespace ARC
 {
     const float TOP_SPEED=10;
@@ -37,7 +26,6 @@ namespace ARC
     const int MAX_NUM_OBJECTS = 10;
     const int MIN_AREA = 100;
     const int NUM_LAPS = 3;
-
 }
 
 #endif
