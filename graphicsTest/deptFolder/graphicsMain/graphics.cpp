@@ -1066,6 +1066,7 @@ int main(int argc, char *argv[])
     subscriber.connect("tcp://localhost:2555");
     requester.connect("tcp://localhost:2550");
     cout << "test after connect" << endl;
+    sendMessage("STYROR 0 0");
     //  Subscribe to id, is nothing
     const char *filter = (argc > 1) ? argv[1] : "";
     subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen(filter));
