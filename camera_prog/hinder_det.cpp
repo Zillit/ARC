@@ -3,7 +3,7 @@
 
 using namespace std;
 using namespace cv; 
-using namespace ARC;
+using namespace ARC_CAMERA;
 
 
 Mat detectionOfColor(Mat camera_img, int low_hsv[3], int high_hsv[3])
