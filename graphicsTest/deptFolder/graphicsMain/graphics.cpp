@@ -350,10 +350,8 @@ void CarPilot::paintSpeedGage(Model *m, GLuint program, const char* vertexVariab
 }
 void CarPilot::paintTarget(Model *m, GLuint p, const char* vertexVariableName, const char* normalVariableName)
 {
-    printMat4(camMatrix);
     targetModelCoords=camMatrix*T(last_target_ofset,0.1,last_target_depth)*mat3tomat4(InverseTranspose(modelCoords));
     total=targetModelCoords;
-    printMat4(total);
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
     DrawModel(m,p,vertexVariableName, normalVariableName, NULL);
 }
