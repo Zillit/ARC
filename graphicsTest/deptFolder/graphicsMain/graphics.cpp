@@ -1042,6 +1042,11 @@ void cleanupSocketAtExit()
     //Makes sure that all threads are terminated.
     terminate();
 }
+void OnTimer(int value)
+{
+    glutPostRedisplay();
+    glutTimerFunc(20, &OnTimer, value);
+}
 int main(int argc, char *argv[])
 {
     //Function for correctly setting up OpenGL
@@ -1050,7 +1055,7 @@ int main(int argc, char *argv[])
     glutInitWindowSize(1200, 1200);
     glutCreateWindow(WINDOW_NAME.c_str());
     glutDisplayFunc(display);
-    glutRepeatingTimer(20);
+	glutTimerFunc(20, &OnTimer, 0);
     init();
     setUpKeyboardFunction();
 
