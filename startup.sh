@@ -11,4 +11,4 @@ python arc_ssh.py
 # chmod +x startup.sh
 # Add to startup via crontab:
 # (sudo) crontab -e
-# @reboot ARC/ARC/startup.sh
+# @reboot /home/pi/ARC/ARC/startup.sh
