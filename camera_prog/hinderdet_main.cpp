@@ -7,7 +7,7 @@
 
 using namespace std;
 using namespace cv;
-using namespace ARC;
+using namespace ARC_CAMERA;
 
 int main()
 {
