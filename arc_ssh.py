@@ -30,7 +30,7 @@ ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
 ARCpub.setsockopt(zmq.SNDHWM,100)
-LIDARsub.setsockopt(zmq.SUBSCRIBE)
+LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
 
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
