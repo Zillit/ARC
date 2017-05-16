@@ -18,6 +18,8 @@ spi_sens.mode = 0b00
 context = zmq.Context()
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:2555")#5565")
+LIDARpub = context.socket(zmq.PUB)
+LIDARpub.bind("tcp://*:5569")
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
 CAMrep = context.socket(zmq.REP)
@@ -28,7 +30,7 @@ ARCpub = context.socket(zmq.PUB)
 zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
 ARCpub.setsockopt(zmq.SNDHWM,100)
-LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
+LIDARsub.setsockopt(zmq.SUBSCRIBE)
 
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
@@ -94,10 +96,10 @@ def main():
         try:
             message=USERrep.recv()
             if message[:6] == "MODEAU":
-                    LIDARreq.send("True")
-            if message[:6] == "MODEMA":
-                    LIDARreq.send("False")
-            if message[:6] == "STYROR":
+                    LIDARpub.send_string("True")
+            elif message[:6] == "MODEMA":
+                    LIDARpub.send_string("False")
+            elif message[:6] == "STYROR":
                 thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01,message))
             USERrep.send(" %s  \n" % message)
         except KeyboardInterrupt:
