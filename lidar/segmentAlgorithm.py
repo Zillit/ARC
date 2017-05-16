@@ -20,7 +20,7 @@ LIDARpub = context.socket(zmq.PUB)
 LIDARpub.bind("tcp://*:2555")
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5569")
-LIDARsub.setsockopt(zmq.SUBSCRIBE)
+LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
 
 
 sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
@@ -127,19 +127,19 @@ def get_target(lista):
 
 
 def get_command(state):
-	status = state
         while True:
 		try:
                		command = LIDARrep.recv_string(zmq.DONTWAIT)
-                	if (command == "True"):
-                        	status = True
-                	elif (command == "False"):
-                        	spi.xfer2([158],250000,1,8)
-                        	spi.xfer2([53],250000,1,8)
-                        	status = False
-        	except:
-                	break
-	return status
+		except:
+			break
+	if (command == "True"):
+                        return True
+        elif (command == "False"):
+                        spi.xfer2([158],250000,1,8)
+                        spi.xfer2([53],250000,1,8)
+                        return False
+        else:
+		return state
 
 
 def main():
