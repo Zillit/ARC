@@ -17,11 +17,11 @@ spi_sens.mode = 0b00
 
 context = zmq.Context()
 LIDARsub = context.socket(zmq.SUB)
-LIDARsub.connect("tcp://localhost:5565")
+LIDARsub.connect("tcp://localhost:2555")#5565")
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
-#CAMrep = context.socket(zmq.REP)
-#CAMrep.connect("tcp://localhost:5567")
+CAMrep = context.socket(zmq.REP)
+CAMrep.connect("tcp://localhost:5567")
 USERrep = context.socket(zmq.REP)
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 ARCpub = context.socket(zmq.PUB)
@@ -33,35 +33,38 @@ LIDARsub.setsockopt_string(zmq.SUBSCRIBE, "10001".decode('ascii'))
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
 
-def sensor_transmit():
-    resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
-    return resp[1], resp[3]
-
-def generateFaceLadarThread(threadName,delay):
-    print("Started thread %s" % threadName)
+def sendCamDataThread(threadName,delay):
+    sleep(delay)
+    print("Enter %s " %threadName)
     while True:
         try:
-            angle=random.randrange(0,60)
-            distance=random.randrange(10,3000)
-            ARCpub.send_string("LADAR %i %i \n" %(angle, distance))
-            sleep(delay)
+            messageCam=CAMrep.recv(zmq.DONTWAIT)
+            if messageCam[:6] == "ARCCAM":
+                ARCpub.send_string(messageCam)
+            CAMrep.send(" %s \n" % message)
+            print(messageCam)
         except KeyboardInterrupt:
-            ARCpub.close()
-            USERrep.close()
-            context.term()
             break
+    ARCpub.close()
+    USERrep.close()
+    CAMrep.close()
+    #SPIreq.close()
+    #LIDARsub.close()
+    context.term()
+            
 
 def sendRealDataThread(threadName,delay):
     sleep(delay)
     while True:
         try:
             mess = LIDARsub.recv_string()
-            id, distance, angle = mess.split()
-            #print mess             
-            ARCpub.send_string("%s %i %i \n" %("LADAR", int(angle), int(distance)))
+            id, angle,distance= mess.split()
+            print mess             
+            ARCpub.send_string("%s %i %i \n" %(str(id), int(angle), int(distance)))
         except KeyboardInterrupt:
             ARCpub.close()
             USERrep.close()
+            Camrep.close()
             context.term()
             break
 
@@ -76,8 +79,6 @@ def sendCommandToSPI(thredName,delay,message):
             styr_transmit(speed)
             styr_transmit(theta)
             print("Recived request: %s" % message)
-            right, left=sensor_transmit()
-            ARCpub.send_string("%s %i %i \n" %("SENSOR", right, left))
             sleep(delay)
             break
         except KeyboardInterrupt:
@@ -86,28 +87,24 @@ def sendCommandToSPI(thredName,delay,message):
     
     
 def main():
+    print("Hello")
     thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
     #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
-    while True:
-        '''
-        try:
-            stopsign=CAMrep.recv(zmq.DONTWAIT)
-            if stopsign:
-                thread.start_new_thread(sendCommandToSPI, ("%s thread" % stopsign,0.01,stopsign))
-                CAMrep.send(" %s \n" % message)
-        except:
-            pass
-        '''
+    while True:        
         try:
             message=USERrep.recv()
+            if message[:6] == "MODEAU":
+                    LIDARreq.send("True")
+            if message[:6] == "MODEMA":
+                    LIDARreq.send("False")
             if message[:6] == "STYROR":
                 thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01,message))
             USERrep.send(" %s  \n" % message)
-            #SPIreq.send_string(message)
         except KeyboardInterrupt:
             break
     ARCpub.close()
     USERrep.close()
+    CAMrep.close()
     #SPIreq.close()
     #LIDARsub.close()
     context.term()

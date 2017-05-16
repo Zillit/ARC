@@ -1,0 +1,17 @@
+commondir = ../../common
+srcdir = ../../src
+incdir = ../../include
+
+Name = mainGraphics
+
+all : $(Name)
+
+$(Name) : graphics.cpp $(commondir)/*.c $(commondir)/*.cpp $(commondir)/Linux/*c 
+	g++ graphics.cpp -std=c++14 -Wall -c -I$(incdir) -I$(commondir) -I$(commondir)/Linux -DGL_GLEXT_PROTOTYPES -fpermissive  -lGL -I$(incdir) -I$(commondir) -I$(commondir)/Linux -DGL_GLEXT_PROTOTYPES -lpthread -lboost_system -lXt -lX11 -lm -lzmq -fpermissive -o $(Name)
+
+
+clean :
+
+	rm $(Name).o
+	rm $(Name)
+	

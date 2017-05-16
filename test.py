@@ -11,8 +11,8 @@ context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind("tcp://*:2555")
 socket.setsockopt(zmq.SNDHWM,1000)
-sockRep = context.socket(zmq.REP)
-sockRep.bind("tcp://*:2550")
+#sockRep = context.socket(zmq.REP)
+#sockRep.bind("tcp://*:2550")
 # zmq.ssh.tunnel_connection(sockRep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 
 def ladarThread(threadName,delay,socket):
@@ -74,9 +74,10 @@ def main():
     thread.start_new_thread(ladarThread,("FakeLadarPointsThread",5,socket))
     while True:
         try:
-            message=sockRep.recv_multipart()
-            print("Recived request: %s" % message)
-            sockRep.send_string(b"World")
+            True
+            #message=sockRep.recv_multipart()
+            #print("Recived request: %s" % message)
+            #sockRep.send_string(b"World")
         except KeyboardInterrupt:
             break
     socket.close()

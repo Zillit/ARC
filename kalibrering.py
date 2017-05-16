@@ -12,5 +12,5 @@ while True:
          resp = spi.xfer2([int(degrees)],250000,1,8)    
     if val == 's':
         speed = input('Hur snabbt: ')
-        resp = spi.xfer2([int(speed)+128],250000,1,8)
+        resp = spi.xfer2([int(speed)+128+30],250000,1,8)
     val = None

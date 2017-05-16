@@ -66,4 +66,8 @@ vector<Vec4i> linesInImage(Mat camera_img);
  */
 vector<ColoredObject> framedObjects(Mat imgThresholded);
 
+static char *s_recv(void *socket);
+static int s_send(void *socket, char *string);
+void sendMessage(string message);
+
 #endif
