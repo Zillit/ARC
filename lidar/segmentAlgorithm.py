@@ -15,11 +15,12 @@ context = zmq.Context()
 ###sender = context.socket(zmq.PUB)
 ###sender.bind("tcp://*:5565")
 ###ID = int(10001) # ID for the ZMQ publisher
-###LIDARrep = context.socket(zmq.REP)
-###LIDARrep.bind("tcp://*:5569")
 #LIDARpub connects to arc_ssh.py
 LIDARpub = context.socket(zmq.PUB)
 LIDARpub.bind("tcp://*:2555")
+LIDARsub = context.socket(zmq.SUB)
+LIDARsub.connect("tcp://localhost:5569")
+LIDARsub.setsockopt(zmq.SUBSCRIBE)
 
 
 sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
@@ -125,17 +126,20 @@ def get_target(lista):
                 return (r, theta)
 
 
-def get_command():
-        try:
-                command = LIDARrep.recv_string(zmq.DONTWAIT)
-                if (command == "True"):
-                        return True
-                elif (command == "False"):
-                        spi.xfer2([158],250000,1,8)
-                        spi.xfer2([53],250000,1,8)
-                        return False
-        except:
-                pass
+def get_command(state):
+	status = state
+        while True:
+		try:
+               		command = LIDARrep.recv_string(zmq.DONTWAIT)
+                	if (command == "True"):
+                        	status = True
+                	elif (command == "False"):
+                        	spi.xfer2([158],250000,1,8)
+                        	spi.xfer2([53],250000,1,8)
+                        	status = False
+        	except:
+                	break
+	return status
 
 
 def main():
@@ -173,7 +177,7 @@ def main():
                                 if i < 150:
                                         i += 1
                                 else:
-                                        #Auto_bool = get_command()
+                                        #Auto_bool = get_command(Auto_bool)
                                         if Auto_bool == False:
                                                 i = 0
                                                 lista2 = []
