@@ -237,7 +237,13 @@ def main():
 '''
 
 if __name__ == '__main__':
-        main()
+	try:
+        	main()
+	finally:
+		sock.close()
+		LIDARpub.close()
+		LIDARsub.close()
+		context.term()
 
 
 
