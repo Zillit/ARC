@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
-
+/*
 using namespace std;
 struct cameraSample
 {
@@ -75,5 +75,5 @@ public:
  void generateFloor(GLuint FLOOR_DEPT_RES, GLuint FLOOR_WIDTH_RES);
  vec3 generateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLfloat Zupright, GLfloat Zdownleft, GLfloat Zup, GLfloat Zdown, GLuint dept, GLuint width);
 };
-
+*/
 #endif

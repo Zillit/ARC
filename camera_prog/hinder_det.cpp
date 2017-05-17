@@ -3,7 +3,7 @@
 
 using namespace std;
 using namespace cv; 
-using namespace ARC_CAMERA;
+using namespace ARC;
 
 
 Mat detectionOfColor(Mat camera_img, int low_hsv[3], int high_hsv[3])
@@ -57,6 +57,16 @@ vector<Vec4i> linesInImage(Mat camera_img)
 	HoughLinesP(dst, lines, 1, CV_PI/180, 50, 50, 10 );
 	
 	return lines;
+}
+
+int lineToDegree(Point_ po)
+{
+
+}
+
+int lineToDistance(Vec4i line)
+{
+
 }
 
 

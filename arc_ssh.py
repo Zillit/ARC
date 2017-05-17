@@ -20,10 +20,12 @@ LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:2555")#5565")
 LIDARpub = context.socket(zmq.PUB)
 LIDARpub.bind("tcp://*:5569")
+CAMERAsub = context.socket(zmq.SUB)
+CAMERAsub.connect("tcp://localhost:2505")
 #SPIreq = context.socket(zmq.REQ)
 #SPIreq.connect("tcp://localhost:5566")
-CAMrep = context.socket(zmq.REP)
-CAMrep.connect("tcp://localhost:5567")
+CAMERApub = context.socket(zmq.REP)
+CAMERApub.connect("tcp://localhost:5567")
 USERrep = context.socket(zmq.REP)
 zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","arc@nhkim91.ddns.net:4444",password = "stavarett")
 ARCpub = context.socket(zmq.PUB)
@@ -40,16 +42,16 @@ def sendCamDataThread(threadName,delay):
     print("Enter %s " %threadName)
     while True:
         try:
-            messageCam=CAMrep.recv(zmq.DONTWAIT)
+            messageCam=CAMERApub.recv(zmq.DONTWAIT)
             if messageCam[:6] == "ARCCAM":
                 ARCpub.send_string(messageCam)
-            CAMrep.send(" %s \n" % message)
+            CAMERApub.send(" %s \n" % message)
             print(messageCam)
         except KeyboardInterrupt:
             break
     ARCpub.close()
     USERrep.close()
-    CAMrep.close()
+    CAMERApub.close()
     #SPIreq.close()
     #LIDARsub.close()
     context.term()
@@ -66,7 +68,7 @@ def sendRealDataThread(threadName,delay):
         except KeyboardInterrupt:
             ARCpub.close()
             USERrep.close()
-            Camrep.close()
+            CAMERApub.close()
             context.term()
             break
 
@@ -91,6 +93,7 @@ def sendCommandToSPI(thredName,delay,message):
 def main():
     print("Hello")
     thread.start_new_thread(sendRealDataThread, ("sendRealDataThread",0.01))
+    thread.start_new_thread(sendCamDataThread, ("sendCamDataThred",0.01))
     #thread.start_new_thread(generateFaceLadarThread, ("Fake ladar points", 0.01))
     while True:        
         try:
@@ -106,7 +109,7 @@ def main():
             break
     ARCpub.close()
     USERrep.close()
-    CAMrep.close()
+    CAMERApub.close()
     #SPIreq.close()
     #LIDARsub.close()
     context.term()
