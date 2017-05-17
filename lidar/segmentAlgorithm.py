@@ -218,7 +218,7 @@ def main():
                                                 if (targetDist > stopThresh):   
                                                         spi.xfer2([speed],250000,1,8)
                                                 else:
-                                                        spi.xfer2([128],250000,1,8)
+                                                        spi.xfer2([158],250000,1,8)
                                                         ###STANNA BILJÄVELN###
                                                 
                                                 spi.xfer2([int(angular)],250000,1,8)
