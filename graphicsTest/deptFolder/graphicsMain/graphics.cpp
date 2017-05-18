@@ -52,6 +52,7 @@
 using namespace std;
 using namespace OPENGL;
 
+
 //For gui models. 
 //One of the following two is always visable and rotate to indicate running program.
 Model *manualModel;
@@ -85,7 +86,8 @@ GLint AIM_MILLISECONDS = 200;
 GLint LOOK_AHEAD_TARGET = 80;
 GLint TURN_SCALER = 1;
 GLint DISTANCE_SCALER = 1;
-GLuint SIZE_OF_PLANNED_ROAD = 0;
+GLuint SIZE_OF_PLANNED_ROAD = 2;
+GLuint NUMBER_OF_LAPS=3;
 bool UTILITY_MODE=false;
 
 boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
@@ -172,6 +174,7 @@ class CarPilot
     bool auto_pilot = false;
     int last_target_depth=0;
     int last_target_ofset=0;
+    int number_of_ticks_turning=1;
 };
 float CarPilot::getAngle(int x, int y)
 {
@@ -265,11 +268,15 @@ void CarPilot::carTick()
     else if ((dTime > duration_between_updates) && update_car_pilot)
     {
         planRoad();
-        theta=(int)(theta*0.8);
-        // if (theta > 0)
-        //     theta=0;
-        // else if (theta < 0)
-        //     theta=0;
+        if(number_of_ticks_turning<0)
+        {
+            if (theta > 0)
+                theta=0;
+            else if (theta < 0)
+                theta=0;
+            number_of_ticks_turning=2;
+        }
+        number_of_ticks_turning--;
         sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
         clock_last = chrono::high_resolution_clock::now();
         // cout << address << " " << to_string(speed) <<" " << to_string(theta);
@@ -704,7 +711,7 @@ void fetchLADARPoints()
                 GLfloat modAngle = data1 - LADAR_ANGLE_OFFSET;
                 // cout << "modAngle: " << modAngle << " modDistance: " << modDistance << endl;
                 //Make sure that we do not care about data that is to close to the machine
-                if (modDistance > 5 && modDistance < 150) //&& 0 < modAngle && (angle - LADAR_ANGLE_OFFSET) < 180)
+                if (modDistance > 10 && modDistance < 150) //&& 0 < modAngle && (angle - LADAR_ANGLE_OFFSET) < 180)
                 {
                     ladarPointsAdd(generateLadarPointFromInputData(data2 / LADAR_SCALER, (data1 - LADAR_ANGLE_OFFSET) * PI / 180));
                 }
@@ -715,7 +722,7 @@ void fetchLADARPoints()
             }
             else if (instruction == "ARCCAM")
             {
-                if(data1>2)
+                if(data1>NUMBER_OF_LAPS-1)
                 {
                     car.disableAutoPilot();
                 }
@@ -723,8 +730,9 @@ void fetchLADARPoints()
             }
             else if (instruction == "DECION")
             {
-                cout << "Desison taken: " << data1 << ", " << data2 << endl;
+                cout << "Desison taken: " << data1-53 << ", " << data2-158 << endl;
                 car.setLastStyror(data1,data2);
+                car.setSpeed(data1-53,data2-158);
             }
             else
             {
@@ -920,6 +928,14 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     // case 'c':
     //     system("ssh -t -p 4444 arc@nhikim91.ddns.net ssh -p 2222 pi@localhost");
     //     break;
+    case '1':
+        NUMBER_OF_LAPS--;
+        cout << "Number of laps before stoping: " << NUMBER_OF_LAPS << endl;
+        break;
+    case '2':
+        NUMBER_OF_LAPS++; 
+        cout << "Number of laps before stoping: " << NUMBER_OF_LAPS << endl;
+        break;
     case '0':
         if(UTILITY_MODE)
         {
