@@ -1,0 +1,18 @@
+commondir = ../../common
+srcdir = ../../src
+incdir = ../../include
+
+Name = zzz
+
+all : $(Name)
+
+$(Name) : test.cpp $(commondir)/*.c $(commondir)/*.cpp $(commondir)/Linux/*c 
+	g++ test.cpp -std=c++14 -Wall -c -I$(incdir) -I$(commondir) -I$(commondir)/Linux -fpermissive  -I$(incdir) -I$(commondir) -I$(commondir)/Linux  -fpermissive -o test.o
+	g++ test.o -std=c++14 -Wall -I$(incdir) -I$(commondir) -I$(commondir)/Linux  -I$(incdir) -I$(commondir) -I$(commondir)/Linux  -lpthread -lm -lzmq -fpermissive -o $(Name)
+
+
+clean :
+
+	rm $(Name).o
+	rm $(Name)
+	

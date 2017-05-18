@@ -1,5 +1,5 @@
 #include "ModelObj.h"
-
+/*
 void ModelObj::printValues(GLfloat* array,GLuint size)
 {
     for (int i=0;i<size;i++)
@@ -131,3 +131,4 @@ vec3 MarchingSquere::generateNormalFromPoints(GLfloat Zleft, GLfloat Zright, GLf
     temp.z = (2 * (Zdown - Zup) + Zupright + Zdownleft - Zup - Zleft);
     return temp;
 }
+*/

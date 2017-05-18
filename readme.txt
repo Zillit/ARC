@@ -18,6 +18,9 @@ libgl1-mesa-glx
 libgl1-mesa-dev
 libxmu-dev 
 libxi-dev
+libboost-system
+libboost-dev
+libboost
 
 Connect over ssh
 To get to the server:  ssh -t -p 4444 arc@nhkim91.ddns.net

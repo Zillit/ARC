@@ -15,8 +15,12 @@ context = zmq.Context()
 ###sender = context.socket(zmq.PUB)
 ###sender.bind("tcp://*:5565")
 ###ID = int(10001) # ID for the ZMQ publisher
-###LIDARrep = context.socket(zmq.REP)
-###LIDARrep.bind("tcp://*:5569")
+#LIDARpub connects to arc_ssh.py
+LIDARpub = context.socket(zmq.PUB)
+LIDARpub.bind("tcp://*:2555")
+LIDARsub = context.socket(zmq.SUB)
+LIDARsub.connect("tcp://localhost:5569")
+LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
 
 
 sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
@@ -29,10 +33,12 @@ i=0
 #Auto_bool = False
 #Auto_bool = True
 #distThresh = 40
-stopThresh = 30
-startSpeed = 158
-controlConst = 0.9
-closeConst = 1.0
+speed = 166
+stopThresh = 60
+frontStopThresh = 40
+startSpeed = 168
+controlConst = 0.25
+closeConst = 1
 diff = 20 # Vilken funkar bäst? 18 eller 20 eller något annat?
 theta_min = 285 + diff
 theta_max = 75 + diff
@@ -109,7 +115,7 @@ def get_target(lista):
                 if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]/2) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]/2)):
                         r = zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
-        if ((1 < zoneangles[4][0] < stopThresh) or (1 < zoneangles[5][0] < stopThresh)):
+        if ((1 < zoneangles[4][0] < frontStopThresh) or (1 < zoneangles[5][0] < frontStopThresh)):
                 #Greater than 1 to avoid the "1=infinity" problem with the LidarLite v3
                 return (10,0)
         elif ((l_min < 20) and (diff < theta < theta_max)):
@@ -120,17 +126,20 @@ def get_target(lista):
                 return (r, theta)
 
 
-def get_command():
-        try:
-                command = LIDARrep.recv_string(zmq.DONTWAIT)
-                if (command == "True"):
+def get_command(state):
+        while True:
+		try:
+               		command = LIDARrep.recv_string(zmq.DONTWAIT)
+		except:
+			break
+	if (command == "True"):
                         return True
-                elif (command == "False"):
-                        spi.xfer2([128],250000,1,8)
+        elif (command == "False"):
+                        spi.xfer2([158],250000,1,8)
                         spi.xfer2([53],250000,1,8)
                         return False
-        except:
-                pass
+        else:
+		return state
 
 
 def main():
@@ -142,6 +151,7 @@ def main():
         global stopThresh
         global startSpeed
         global controlConst
+        global speed
         global diff
         global theta_min
         global theta_max
@@ -149,7 +159,9 @@ def main():
         angle=0
         Auto_bool = True
         while True:
-                data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data 
+                data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
+                id, distance, angle = data.split()
+                LIDARpub.send_string("%s %i %i \n" % ("LADAR", int(angle), int(distance)))
                 if data:
                         lista += data 
                         while lista.find("\n") != -1:
@@ -165,7 +177,7 @@ def main():
                                 if i < 150:
                                         i += 1
                                 else:
-                                        #Auto_bool = get_command()
+                                        #Auto_bool = get_command(Auto_bool)
                                         if Auto_bool == False:
                                                 i = 0
                                                 lista2 = []
@@ -190,18 +202,27 @@ def main():
                                                         angular = 6
                                                 else:
                                                         angular = int(angular*47/55-11)
-                                                #if (targetDist < 60):
-                                                #        speed = int(startSpeed+20*(1-(1/60)*abs(53-angular)*closeConst*(1/100)*min(targetDist,100)*controlConst))
+                                                #if (targetDist < 70):                   #avstånd mindre än 70  =>  hjulens vinklar spelar mindre roll
+                                                        #speed = int(startSpeed + 20/(1 + (speed - startSpeed)/1) * (1 - math.pow(abs(53-angular)/60, closeConst) *min(targetDist,500)/500))*controlConst)
                                                 #else:
-                                                speed = int(startSpeed+20*(1-(1/100)*min(targetDist,100)*controlConst)*(1/60)*abs(53-angular))
-                                                 ###   Hastighet   ###
+                                                 #       speed = int(startSpeed + 20/(1 + (speed - startSpeed)/1) * (1 - min(targetDist,500)/500*abs(53-angular)/60)*controlConst)
+
+
+
+                                                #speed = int(startSpeed + 20*(1 - abs(53-angular)/60 *min(targetDist,500)/500)*controlConst)
+                                                #Nästan lite för försiktig ---   #speed = int(startSpeed + 20/(1 + speed - startSpeed) * (1 - min(targetDist,500)/500*abs(53-angular)/60)*controlConst)
+                                                
+                                                 
+                                                speed = 169    
+                                                        ###   Hastighet   ###
                                                 if (targetDist > stopThresh):   
                                                         spi.xfer2([speed],250000,1,8)
                                                 else:
-                                                        spi.xfer2([128],250000,1,8)
+                                                        spi.xfer2([158],250000,1,8)
                                                         ###STANNA BILJÄVELN###
                                                 
                                                 spi.xfer2([int(angular)],250000,1,8)
+                                                LIDARpub.send_string("%s %i %i \n" % ("DECION", int(angular), int(speed)))
                                                 i = 0
                                                 lista2 = []
         
@@ -216,7 +237,13 @@ def main():
 '''
 
 if __name__ == '__main__':
-        main()
+	try:
+        	main()
+	finally:
+		sock.close()
+		LIDARpub.close()
+		LIDARsub.close()
+		context.term()
 
 
 

@@ -19,5 +19,5 @@ find_library(ZeroMQ_LIBRARY
 
 MESSAGE(STATUS "COMPILING OPENCV TESTS")
 add_executable( Camera_test hinderdet_main.cpp hinder_det.cpp)
-set_property(TARGET Camera_test PROPERTY CXX_STANDARD 11)
+set_property(TARGET Camera_test PROPERTY CXX_STANDARD 14)
 target_link_libraries( Camera_test ${OpenCV_LIBS} ${raspicam_CV_LIBS} ${ZeroMQ_LIBRARY})
