@@ -22,23 +22,18 @@ LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5569")
 LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
 
-try:
-        sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
-        sock.connect((bd_addr, port))
-        sock.settimeout(5.0)
-        print("Connection Acquired")
-except:
-        sock.close()
-        LIDARpub.close()
-        LIDARsub.close()
-        context.term()
+
+sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
+sock.connect((bd_addr, port))
+sock.settimeout(5.0)
+print("Connection Acquired")
 lista =""
 lista2 = []
 i=0
 #Auto_bool = False
 #Auto_bool = True
 #distThresh = 40
-speed = 168
+speed = 170
 stopThresh = 60
 frontStopThresh = 40
 startSpeed = 168
@@ -116,7 +111,7 @@ def get_target(lista):
         if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]/2)):
                 r = zoneangles[9][0]
                 theta = zoneangles[9][1]
-        for jindex in range(1,9):
+        for jindex in range(1,10):
                 if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]/2) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]/2)):
                         r = zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
@@ -130,24 +125,9 @@ def get_target(lista):
         else:   
                 return (r, theta)
 
-def bt_init():
-        while True:
-                try:
-                        sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
-                        sock.connect((bd_addr, port))
-                        sock.settimeout(5.0)
-                        print("Connection Acquired")
-                        break
-                except:
-                        LIDARpub.send_string("%s %i %i" % ("LADAR" ,180 ,180 ))
-                        print("#daww")
-                        continue
-        
+
 def get_command(state):
-        global speed
         command = ""
-        temp = ""
-        decision = ""
         while True:
                 try:
                         command = LIDARsub.recv_string(zmq.DONTWAIT)
@@ -155,13 +135,10 @@ def get_command(state):
                 except:
                         #print("Break")
                         break
-        decision, maxspeed, temp = command.split()
-        #speed = int(maxspeed)
-        if (decision == "True"):
+        if (command == "True"):
                 #print("Truu")
-                speed = int(maxspeed)
                 return True
-        elif (decision == "False"):
+        elif (command == "False"):
                 spi.xfer2([158],250000,1,8)
                 spi.xfer2([53],250000,1,8)
                 #print("Faalse")
@@ -241,7 +218,7 @@ def main():
                                                 #Nästan lite för försiktig ---   #speed = int(startSpeed + 20/(1 + speed - startSpeed) * (1 - min(targetDist,500)/500*abs(53-angular)/60)*controlConst)
                                                 
                                                  
-                                                #speed = 168    
+                                                speed = 169    
                                                         ###   Hastighet   ###
                                                 if (targetDist > stopThresh):   
                                                         spi.xfer2([speed],250000,1,8)
@@ -265,25 +242,15 @@ def main():
 '''
 
 if __name__ == '__main__':
-        while True:
-                try:
-                        main()
-                except bluetooth.btcommon.BluetoothError:
-                        try:
-                                sock.close()
-                        except:
-                                pass
-                        spi.xfer2([158],250000,1,8)
-                        spi.xfer2([53],250000,1,8)
-                        bt_init()
-                        continue
-                except:
-                        spi.xfer2([158],250000,1,8)
-                        spi.xfer2([53],250000,1,8)
-                        sock.close()
-                        LIDARpub.close()
-                        LIDARsub.close()
-                        context.term()
+        try:
+                main()
+        finally:
+                spi.xfer2([158],250000,1,8)
+                spi.xfer2([53],250000,1,8)
+                sock.close()
+                LIDARpub.close()
+                LIDARsub.close()
+                context.term()
 
 
 

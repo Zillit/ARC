@@ -5,11 +5,19 @@ import sys
 import zmq
 import defines
 
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+
 context = zmq.Context()
 CAMERApub = context.socket(zmq.PUB)
 CAMERApub.bind("tcp://*:2505")
+CAMERAsub = context.socket(zmq.SUB)
+CAMERAsub.connect("tcp://localhost:2500")
+CAMERAsub.setsockopt(zmq.SUBSCRIBE, b"")
 
 z = 1
+
 #
 # Ett färgat objekt eller markering
 #
@@ -20,7 +28,7 @@ class Rectangle:
         self.xR = xR
         self.yB = yB
     def area(self): 
-        return ( -self.yB + self.yT ) *( self.xR - self.xL )
+        return ( self.yT - self.yB ) * ( self.xR - self.xL )
     def yT(self):
         return self.yT
     def yB(self):
@@ -74,17 +82,36 @@ class Rectangle:
             return right_angle
 
 GOAL_COUNTER = 0
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
 
-CAMERApub.send_string("%s %i %i" %("ARCCAM", 1, 0))
+#CAMERApub.send_string("%s %i %i" %("ARCCAM", 1, 0))
 
-while(1):
+camera = PiCamera()
+camera.resolution = (defines.PIXEL_WIDTH, defines.PIXEL_HEIGHT)
+camera.framerate = 32
+rawCapture = PiRGBArray(camera, size=(defines.PIXEL_WIDTH, defines.PIXEL_HEIGHT))
 
-    _, frame = cap.read()
+time.sleep(0.1)
+
+
+for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    try:
+        messageCam=CAMERAsub.recv_string(zmq.DONTWAIT)
+        if messageCam:
+            print messageCam
+            mes,laps, num = messageCam.split()
+            GOAL_COUNTER = 0
+    except:
+        pass
+    frame = img.array
+    
+    key = cv2.waitKey(1) & 0xFF
+    #_, frame = cap.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_blue = np.array([38,50,50])
-    upper_blue = np.array([75,255,255])
+    lower_blue = np.array([90,70,70])
+    upper_blue = np.array([130,255,255])
     imgthresh = cv2.inRange(hsv, lower_blue, upper_blue)
+    
     
     kernel = np.ones((5,5), np.uint8)
     
@@ -96,9 +123,10 @@ while(1):
 
     imgthresh = cv2.medianBlur(imgthresh,5)
 
-    im2, contours, hierarchy = cv2.findContours(imgthresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    
+    contours, hierarchy = cv2.findContours(imgthresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    #print contours
     objects = []
+    
 
     for cnt in contours:
         x,y,w,h = cv2.boundingRect(cnt)
@@ -121,15 +149,19 @@ while(1):
     
     if len(objects) != 0:
         for i in range(len(objects)):
-            if objects[i].yB < 200:
+            if objects[i].yB < defines.PIXEL_HEIGHT/10:
                 z = 0
                 break
     elif ((len(objects) == 0) & z == 0):
         z = 1
         GOAL_COUNTER = GOAL_COUNTER + 1
+        
+        CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 0))
         print(GOAL_COUNTER)
-        CAMERApub.send_string("%s %i %i" %("ARCCAM", GOAL_COUNTER, 0))
 
-    
+
+    rawCapture.truncate(0)
+
+
 
 cv2.destroyAllWindows()
