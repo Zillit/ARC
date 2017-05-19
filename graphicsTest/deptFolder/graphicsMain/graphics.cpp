@@ -127,6 +127,7 @@ class CarPilot
     {
         speed = std::min(std::max(newSpeed, MIN_SPEED), MAX_SPEED);
         theta = std::min(std::max(newTheta, MIN_THETA), MAX_THETA);
+        update_car_pilot=true;
     };
     void carTick();
     void setCurrentSpeedBasedOnSensors(float speed) {}
@@ -136,19 +137,20 @@ class CarPilot
     void paintPlan(Model *map);
     void paintSpeedGage(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName);
     void paintTarget(Model *m,GLuint program, const char* vertexVariableName, const char* normalVariableName);
-    void enableAutoPilot() { auto_pilot = true; sendMessage("MODEAU 255 255");};
+    void enableAutoPilot() { auto_pilot = true; FUCKINGAUTO=true; sendMessage("MODEAU " + to_string(MAX_SPEED) + " 0");};
 
     void changeDepthOfThetaSearch(int delta) { depth_of_theta_search = std::max(depth_of_theta_search + delta, 1); };
     void disableAutoPilot() {
-        boost::lock_guard<boost::mutex> guard(carMutex);
-         auto_pilot = false; sendMessage("MODEMA 0 0" );};
+        // boost::lock_guard<boost::mutex> guard(carMutex);
+
+         auto_pilot = false; sendMessage("MODEMA 10 0" );};
     void printVariables();
     void backup(int dV) { speed = std::min(std::max(speed += dV, -MAX_SPEED), MAX_SPEED); };
     float getAngle(int x, int y);
     int getState(){if(auto_pilot){return 1;} else {return 0;}};
     void setLastStyror(int ang,int spe)
     {
-        boost::lock_guard<boost::mutex> guard(carMutex);
+        // boost::lock_guard<boost::mutex> guard(carMutex);
         last_target_ofset=(int)std::sin(ang*PI/180)*spe;
         last_target_depth=(int)(FLOOR_DEPT_RES-spe);
     }
@@ -180,7 +182,7 @@ class CarPilot
     bool auto_pilot = false;
     int last_target_depth=0;
     int last_target_ofset=0;
-    int number_of_ticks_turning=1;
+    int number_of_ticks_turning=2;
 };
 float CarPilot::getAngle(int x, int y)
 {
@@ -201,6 +203,7 @@ void CarPilot::changeDirection(int dTheta)
 {
     theta = std::min(std::max(theta += dTheta, MIN_THETA), MAX_THETA);
     update_car_pilot = true;
+    number_of_ticks_turning=2;
 }
 void modifyFloorY(GLint, GLint, GLfloat, Model *, bool);
 //Updates driving instruction and keep in contact with the hardware
@@ -269,15 +272,16 @@ void CarPilot::carTick()
     // }
     if((dTime > duration_between_updates) && auto_pilot)
     {
-        sendMessage("MODEAU " + to_string(MAX_SPEED) + " " + to_string(255));
         if(!FUCKINGAUTO)
         {
             disableAutoPilot();
+            FUCKINGAUTO=true;
         }
     }
-    else if ((dTime > duration_between_updates) && update_car_pilot)
+    else if (dTime > duration_between_updates)
     {
-        planRoad();
+        // planRoad();
+        sendMessage("STYROR " + to_string(speed) + " " + to_string(theta));
         if(number_of_ticks_turning<0)
         {
             if (theta > 0)
@@ -287,9 +291,8 @@ void CarPilot::carTick()
             number_of_ticks_turning=2;
         }
         number_of_ticks_turning--;
-        sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
         clock_last = chrono::high_resolution_clock::now();
-        // cout << address << " " << to_string(speed) <<" " << to_string(theta);
+        cout << address << " " << to_string(speed) <<" " << to_string(theta) << endl;
     }
 }
 static char *CarPilot::s_recv(void *socket)
