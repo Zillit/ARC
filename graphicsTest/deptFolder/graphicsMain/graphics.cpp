@@ -87,12 +87,14 @@ GLint LOOK_AHEAD_TARGET = 80;
 GLint TURN_SCALER = 1;
 GLint DISTANCE_SCALER = 1;
 GLuint SIZE_OF_PLANNED_ROAD = 2;
-GLuint NUMBER_OF_LAPS=3;
+int NUMBER_OF_LAPS=2;
 bool UTILITY_MODE=false;
+bool FUCKINGAUTO=false;
 
 boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
 //Required to provide thread safty
 boost::mutex ladarPointsMutex;
+boost::mutex carMutex;
 //Vectors for setting up the camera
 vec3 CAM_POS{0, 30, 80}, TARGET{0, 0, 0}, UP{0, 1, 0};
 //Matrix for the floor model.
@@ -137,18 +139,22 @@ class CarPilot
     void enableAutoPilot() { auto_pilot = true; sendMessage("MODEAU 255 255");};
 
     void changeDepthOfThetaSearch(int delta) { depth_of_theta_search = std::max(depth_of_theta_search + delta, 1); };
-    void disableAutoPilot() { auto_pilot = false; sendMessage("MODEMA 0 0" );};
+    void disableAutoPilot() {
+        boost::lock_guard<boost::mutex> guard(carMutex);
+         auto_pilot = false; sendMessage("MODEMA 0 0" );};
     void printVariables();
     void backup(int dV) { speed = std::min(std::max(speed += dV, -MAX_SPEED), MAX_SPEED); };
     float getAngle(int x, int y);
     int getState(){if(auto_pilot){return 1;} else {return 0;}};
     void setLastStyror(int ang,int spe)
     {
+        boost::lock_guard<boost::mutex> guard(carMutex);
         last_target_ofset=(int)std::sin(ang*PI/180)*spe;
         last_target_depth=(int)(FLOOR_DEPT_RES-spe);
     }
     void setSensorSpeed(int right, int left)
     {
+        boost::lock_guard<boost::mutex> guard(carMutex);
         rightSpeed = right;
         leftSpeed = left;
     };
@@ -263,7 +269,11 @@ void CarPilot::carTick()
     // }
     if((dTime > duration_between_updates) && auto_pilot)
     {
-        sendMessage("MODEAU " + to_string(255) + " " + to_string(255));
+        sendMessage("MODEAU " + to_string(MAX_SPEED) + " " + to_string(255));
+        if(!FUCKINGAUTO)
+        {
+            disableAutoPilot();
+        }
     }
     else if ((dTime > duration_between_updates) && update_car_pilot)
     {
@@ -313,22 +323,22 @@ GLfloat getFloorY(GLint, GLint, Model *);
 void DrawLinesModel(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName,GLuint number_of_lines);
 void CarPilot::paintPlan(Model *map)
 {
-    int endDepth = SIZE_OF_PLANNED_ROAD;
-    for (int iter = 0; iter < endDepth; iter++)
-    {
-        map->vertexArray[iter*3]=planned_path.at(iter).first + planned_path.at(iter).second;
-        map->vertexArray[iter*3+1]=0.01;
-        map->vertexArray[iter*3+2]=FLOOR_DEPT_RES-iter;
-    }
-    //make sure that it is not painted beyound the depth
-    // for (int iter =endDepth;iter<PLANNING_DEPTH;iter++)
+    // int endDepth = SIZE_OF_PLANNED_ROAD;
+    // for (int iter = 0; iter < endDepth; iter++)
     // {
-    //     map->vertexArray[iter*3]=map->vertexArray[endDepth*3-3];
+    //     map->vertexArray[iter*3]=planned_path.at(iter).first + planned_path.at(iter).second;
     //     map->vertexArray[iter*3+1]=0.01;
-    //     map->vertexArray[iter*3+2]=map->vertexArray[endDepth*3-1];
+    //     map->vertexArray[iter*3+2]=FLOOR_DEPT_RES-iter;
     // }
-    ReloadModelData(map);
-    DrawLinesModel(map, program_terrain,"inPosition", "inNormal", SIZE_OF_PLANNED_ROAD-1);
+    // //make sure that it is not painted beyound the depth
+    // // for (int iter =endDepth;iter<PLANNING_DEPTH;iter++)
+    // // {
+    // //     map->vertexArray[iter*3]=map->vertexArray[endDepth*3-3];
+    // //     map->vertexArray[iter*3+1]=0.01;
+    // //     map->vertexArray[iter*3+2]=map->vertexArray[endDepth*3-1];
+    // // }
+    // ReloadModelData(map);
+    // DrawLinesModel(map, program_terrain,"inPosition", "inNormal", SIZE_OF_PLANNED_ROAD-1);
     
 }
 void CarPilot::paintSpeedGage(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName)
@@ -722,17 +732,20 @@ void fetchLADARPoints()
             }
             else if (instruction == "ARCCAM")
             {
-                if(data1>NUMBER_OF_LAPS-1)
+                if(data1>NUMBER_OF_LAPS)
                 {
-                    car.disableAutoPilot();
+                    FUCKINGAUTO=false;
                 }
-                cout << "Number of times seen finish lines: " << data1 << endl;
+                int numberoflaps=data1-1;
+                cout << "Number of times seen finish lines: " << numberoflaps << endl;
+
             }
             else if (instruction == "DECION")
             {
                 cout << "Desison taken: " << data1-53 << ", " << data2-158 << endl;
+                
                 car.setLastStyror(data1,data2);
-                car.setSpeed(data1-53,data2-158);
+                // car.setSpeed(data1-53,data2-158);
             }
             else
             {
@@ -923,7 +936,9 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     switch (key)
     {
     case 't':
+        FUCKINGAUTO=true;
         car.enableAutoPilot();
+        sendMessage("ARCCAM " + to_string(0) + " " + to_string(NUMBER_OF_LAPS));
         break;
     // case 'c':
     //     system("ssh -t -p 4444 arc@nhikim91.ddns.net ssh -p 2222 pi@localhost");

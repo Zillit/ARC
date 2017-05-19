@@ -14,12 +14,13 @@ const float BOTTOM_ = -0.5;
 //Window values
 const int WINDOW_HIGHT = 960;
 const int WINDOW_WIDTH = 1200;
-const string WINDOW_NAME = "ARC User Main Window V 0.1";
+const string WINDOW_NAME = "ARC User Main Window V 1.0";
 //scalers for transformations
 GLfloat SPEED_ROT = 0.010 * 3.14;
 GLfloat SPEED_TRANS = 1.0;
 GLfloat a = 0.0f;
 GLuint b = 0;
+
 //Camera limits
 struct allowed_area
 {
