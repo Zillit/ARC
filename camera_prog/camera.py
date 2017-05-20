@@ -82,9 +82,6 @@ class Rectangle:
             return right_angle
 
 GOAL_COUNTER = 0
-#cap = cv2.VideoCapture(0)
-
-#CAMERApub.send_string("%s %i %i" %("ARCCAM", 1, 0))
 
 camera = PiCamera()
 camera.resolution = (defines.PIXEL_WIDTH, defines.PIXEL_HEIGHT)
@@ -108,12 +105,25 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     key = cv2.waitKey(1) & 0xFF
     #_, frame = cap.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
     lower_blue = np.array([90,70,70])
     upper_blue = np.array([130,255,255])
-    imgthresh = cv2.inRange(hsv, lower_blue, upper_blue)
-    
-    
+
+    lower_green = np.array([30,50,50])
+    upper_green = np.array([70,255,255])
+
     kernel = np.ones((5,5), np.uint8)
+    
+    imgthresh = cv2.inRange(hsv, lower_blue, upper_blue)
+    img_green = cv2.inRange(hsv, lower_green, upper_green)
+
+    img_green = cv2.erode(img_green, kernel, iterations=1)
+    img_green = cv2.dilate(img_green, kernel, iterations=1)
+
+    img_green = cv2.dilate(img_green, kernel, iterations=1)
+    img_green = cv2.erode(img_green, kernel, iterations=1)
+
+    img_green = cv2.medianBlur(img_green,5)
     
     imgthresh = cv2.erode(imgthresh, kernel, iterations=1)
     imgthresh = cv2.dilate(imgthresh, kernel, iterations=1)
@@ -124,23 +134,30 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     imgthresh = cv2.medianBlur(imgthresh,5)
 
     contours, hierarchy = cv2.findContours(imgthresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours_green, hierarchy_green = cv2.findContours(img_green, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     #print contours
     objects = []
+    objects_green = []
     
-
     for cnt in contours:
         x,y,w,h = cv2.boundingRect(cnt)
         tmp = Rectangle(x, defines.PIXEL_HEIGHT - y, x+w, defines.PIXEL_HEIGHT - (y+h))
-        #print(tmp.closestDistance())
         if (tmp.area() > 600):
             objects.append(tmp) 
             cv2.rectangle(imgthresh, (x,y), (x+w,y+h), (100,255,40), 2)
-            
+
+    for cnt in contours_green:
+        x,y,w,h = cv2.boundingRect(cnt)
+        tmp = Rectangle(x, defines.PIXEL_HEIGHT - y, x+w, defines.PIXEL_HEIGHT - (y+h))
+        if (tmp.area() > 600):
+            objects_green.append(tmp) 
+            cv2.rectangle(img_green, (x,y), (x+w,y+h), (100,255,40), 2)  
         
     cv2.drawContours(frame, contours, -1, (255,0,0), 3)
-
+    cv2.drawContours(frame, contours_green, -1, (0,255,0), 3)
     cv2.imshow('frame',frame)
     cv2.imshow('imgthresh',imgthresh)
+    cv2.imshow('green',img_green)
     #cv2.imshow('res',res)
     #cv2.imshow('Cont', contours)
     k = cv2.waitKey(5) & 0xFF
@@ -156,12 +173,12 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
         z = 1
         GOAL_COUNTER = GOAL_COUNTER + 1
         
-        CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 0))
+        CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 100))
         print(GOAL_COUNTER)
 
+    if len(objects_green) != 0:
+         CAMERApub.send_string("%s %i %i \n" %("ARCCAM", objects_green[0].leftAngle(), objects_green[0].rightAngle()))
 
     rawCapture.truncate(0)
-
-
 
 cv2.destroyAllWindows()
