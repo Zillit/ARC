@@ -172,12 +172,11 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     elif ((len(objects) == 0) & z == 0):
         z = 1
         GOAL_COUNTER = GOAL_COUNTER + 1
-        
-        #CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 100))
+        CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 100))
         print(GOAL_COUNTER)
 
     if len(objects_green) != 0:
-         CAMERApub.send_string("%s %i %i \n" %("ARCCAM", objects_green[0].leftAngle() + 3, objects_green[0].rightAngle() - 3))
+         CAMERApub.send_string("%s %i %i \n" %("ARCANG", objects_green[0].leftAngle() + 3, objects_green[0].rightAngle() - 3))
 
     rawCapture.truncate(0)
 

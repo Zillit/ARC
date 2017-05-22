@@ -31,9 +31,9 @@ CAMERAsub.connect("tcp://localhost:2505")
 #CAMERApub = context.socket(zmq.REP)
 #CAMERApub.connect("tcp://localhost:5567")
 USERrep = context.socket(zmq.REP)
-zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","pi@nhkim91.ddns.net:4444",password = "NewArc11")
+zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","pi@nhkim91.ddns.net:4444",password = "")
 ARCpub = context.socket(zmq.PUB)
-zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","pi@nhkim91.ddns.net:4444",password = "NewArc11")
+zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","pi@nhkim91.ddns.net:4444",password = "")
 
 ARCpub.setsockopt(zmq.SNDHWM,100)
 LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
@@ -44,7 +44,7 @@ def styr_transmit(data):
 
 def sensor_transmit():
 	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
-	data = str(resp[1])+str(resp[2])+str(resp[3])+str(resp[4]) # Gör om till en sträng
+	data = int((int(resp[1]) + int(resp[3]))/2) # Gör om till en int
 	return data # Returnera
 
 def sendCamDataThread(threadName,delay):
@@ -82,8 +82,9 @@ def sendRealDataThread(threadName,delay):
             id, angle,distance= mess.split()
             message_sent=message_sent+1
             ARCpub.send_string("%s %i %i \n" %(str(id), int(angle), int(distance)))
-            if (message_sent > 99):
+            if (message_sent > 500):
                 print mess
+                ARCpub.send_string("%s %i *%i \n" %("ARCSPE", sensor_transmit(), 0))
                 message_sent=0
             try:
                 messageCam=CAMERAsub.recv_string(zmq.DONTWAIT)
@@ -129,9 +130,9 @@ def main():
             message=USERrep.recv()
             print message
             if message[:6] == "MODEAU":
-                    LIDARpub.send_string("True")
+                    LIDARpub.send_string(message)
             elif message[:6] == "MODEMA":
-                    LIDARpub.send_string("False")
+                    LIDARpub.send_string(message)
             elif message[:6] == "STYROR":
                 thread.start_new_thread(sendCommandToSPI, ("%s thread" % message,0.01,message))
             elif message[:6] == "ARCCAM":

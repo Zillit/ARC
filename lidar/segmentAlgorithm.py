@@ -75,11 +75,11 @@ def get_target(lista):
         while True:
                 try:
                         messageCam=CAMsub.recv_string(zmq.DONTWAIT)
-                        print(messageCam)
+                       # print(messageCam)
                 except:
                         #print("Break")
                         break
-        if (messageCam.split()[0] == "ARCCAM"):
+        if (messageCam.split()[0] == "ARCANG"):
                 illegal_left_angle = int(messageCam.split()[1]) + diff + 360
                 illegal_right_angle = int(messageCam.split()[2]) + diff + 360
         #if 
@@ -89,8 +89,6 @@ def get_target(lista):
                 arg = lista[i][1]
                 if (theta_max + 30 < arg < theta_min - 30):
                         continue
-                #elif (((illegal_right_angle < arg < illegal_left_angle) or  (illegal_right_angle < arg +360 < illegal_left_angle)) and (dist < 200)):
-                        #continue
                 elif ((theta_max + 30 > arg > theta_max) and dist < l_min):
                         l_min = dist
                 elif ((theta_min - 30 < arg < theta_min) and dist < r_min):
@@ -132,14 +130,14 @@ def get_target(lista):
         for kindex in range(10):
                 if ((illegal_right_angle < zoneangles[kindex][1] < illegal_left_angle) or  (illegal_right_angle < zoneangles[kindex][1]+360 < illegal_left_angle)):
                         zoneangles[kindex][2] = 1
-        if (zoneangles[0][0] > r and zoneangles[0][0] !=5096 and zoneangles[1][0] > int(zoneangles[0][0]*3/8) and (zoneangles[0][2] + zoneangles[1][2] == 0)):#int(zoneangles[0][0]/2)):
+        if (zoneangles[0][0] > r and zoneangles[0][0] !=5096 and zoneangles[1][0] > int(zoneangles[0][0]*3/8) and ((zoneangles[0][2] + zoneangles[1][2]) == 0)):#int(zoneangles[0][0]/2)):
                 r = zoneangles[0][0]
                 theta = zoneangles[0][1]
-        if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]*3/8) and (zoneangles[8][2] + zoneangles[9][2] == 0)):
+        if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]*3/8) and ((zoneangles[8][2] + zoneangles[9][2]) == 0)):
                 r = zoneangles[9][0]
                 theta = zoneangles[9][1]
         for jindex in range(1,9):
-                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]*3/8) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]*3/8) and (zoneangles[jindex-1][2] + zoneangles[jindex][2] + zoneangles[jindex+1][2] == 0)):
+                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]*3/8) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]*3/8) and ((zoneangles[jindex-1][2] + zoneangles[jindex][2] + zoneangles[jindex+1][2]) == 0)):
                         r = zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
         if ((1 < zoneangles[4][0] < frontStopThresh) or (1 < zoneangles[5][0] < frontStopThresh)):
@@ -177,13 +175,16 @@ def get_command(state):
                 except:
                         #print("Break")
                         break
-        decision, maxspeed, temp = command.split()
+        try:
+                decision, maxspeed, temp = command.split()
+        except:
+                pass
         #speed = int(maxspeed)
-        if (decision == "True"):
+        if (decision == "MODEAU"):
                 #print("Truu")
-                speed = int(maxspeed)
+                speed = int(maxspeed)+158
                 return True
-        elif (decision == "False"):
+        elif (decision == "MODEMA"):
                 spi.xfer2([158],250000,1,8)
                 spi.xfer2([53],250000,1,8)
                 #print("Faalse")
@@ -206,7 +207,7 @@ def main():
         global theta_max
         dist=0
         angle=0
-        Auto_bool = True #ENDAST FÖR TEST, ÄNDRA TILL FALSE
+        Auto_bool = False #ENDAST FÖR TEST, ÄNDRA TILL FALSE
         while True:
                 data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
                 if data:
@@ -217,14 +218,14 @@ def main():
                                         angle = int(lista[lista.find(":")+1:lista.find("\n")-1]) 
                                 except ValueError:
                                         lista = lista[lista.find("\n")+1:]
-                                        print("ValueError")
+                                        #print(dist, angle)
                                         continue
                                 lista2.append([dist, angle])
                                 if (dist > 1):
                                         LIDARpub.send_string("%s %i %i" % ("LADAR", angle, dist))
                                 lista = lista[lista.find("\n")+1:] 
                                 if ((170 < angle < 190) and (i > 20)):
-                                        #Auto_bool = get_command(Auto_bool)
+                                        Auto_bool = get_command(Auto_bool)
                                         #print(Auto_bool)
                                         if Auto_bool == False:
                                                 i = 0
