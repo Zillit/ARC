@@ -15,14 +15,14 @@ spi_sens = spidev.SpiDev()
 spi_sens.open(0,1) # Shit works yo
 spi_sens.mode = 0b00
 
-context = zmq.Context()
-socket = context.socket(zmq.REP)
-socket.bind("tcp://*:5566")
+#context = zmq.Context()
+#socket = context.socket(zmq.REP)
+#socket.bind("tcp://*:5566")
 
 
 def sensor_transmit():
-	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
-	data = str(resp[1])+str(resp[2])+str(resp[3])+str(resp[4]) # Gör om till en sträng
+	resp = spi_sens.xfer2([0xFF,0,0,0,0],8000,1,8) # Ta emot 4 sensorvärden via spi
+	data = str(resp[1])+" "+str(resp[3]) # Gör om till en sträng
 	return data # Returnera
 	
 	
@@ -33,11 +33,15 @@ def styr_transmit(data):
 def main():
         while True:
                 try:
-                        command = socket.recv_string(zmq.DONTWAIT)
+                        #command = socket.recv_string(zmq.DONTWAIT)
                         
-                        styr_transmit(int(command))
+                        #styr_transmit(int(command))
                         reply = sensor_transmit()# Läs sensordata
-                        command.send_string(reply)
+                        #command.send_string(reply)
+                        #print "Hello"
+                        print reply
+                        #print reply.split(' ',1)
+                        time.sleep(0.1)
                 except :
                         continue
                 #time.sleep(0.1)

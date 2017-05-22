@@ -21,27 +21,19 @@ LIDARpub.bind("tcp://*:2555")
 LIDARsub = context.socket(zmq.SUB)
 LIDARsub.connect("tcp://localhost:5569")
 LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
-CAMsub = context.socket(zmq.SUB)
-CAMsub.connect("tcp://localhost:2505")
-CAMsub.setsockopt(zmq.SUBSCRIBE, b"")
 
-try:
-        sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
-        sock.connect((bd_addr, port))
-        sock.settimeout(5.0)
-        print("Connection Acquired 1")
-except:
-        sock.close()
-        LIDARpub.close()
-        LIDARsub.close()
-        context.term()
+
+sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
+sock.connect((bd_addr, port))
+sock.settimeout(5.0)
+print("Connection Acquired")
 lista =""
 lista2 = []
 i=0
 #Auto_bool = False
 #Auto_bool = True
 #distThresh = 40
-speed = 168
+speed = 170
 stopThresh = 60
 frontStopThresh = 40
 startSpeed = 168
@@ -68,29 +60,13 @@ def get_target(lista):
         maximus = len(lista)-1
         l_min = 100
         r_min = 100
-        zoneangles = [[5096,theta_min+8,0],[5096,theta_min+23,0],[5096,theta_min+38,0],[5096,theta_min+53,0],[5096,theta_max-83,0],[5096,theta_max-68,0],[5096,theta_max-53,0],[5096,theta_max-38,0],[5096,theta_max-23,0],[5096,theta_max-8,0]]
-        messageCam = "0 0 0"
-        illegal_left_angle = 0
-        illegal_right_angle = 0
-        while True:
-                try:
-                        messageCam=CAMsub.recv_string(zmq.DONTWAIT)
-                        #print(messageCam)
-                except:
-                        #print("Break")
-                        break
-        if (messageCam.split()[0] == "ARCARG"):
-                illegal_left_angle = int(messageCam.split()[1]) + diff + 360
-                illegal_right_angle = int(messageCam.split()[2]) + diff + 360
-        #if 
+        zoneangles = [[5096,theta_min+8],[5096,theta_min+23],[5096,theta_min+38],[5096,theta_min+53],[5096,theta_max-83],[5096,theta_max-68],[5096,theta_max-53],[5096,theta_max-38],[5096,theta_max-23],[5096,theta_max-8]]
         #zoneangles = [[5096,0],[5096,0],[5096,0],[5096,0],[5096,0],[5096,0],[5096,0],[5096,0],[5096,0],[5096,0]]
         for i in range(maximus+1):
                 dist = lista[i][0]
                 arg = lista[i][1]
                 if (theta_max + 30 < arg < theta_min - 30):
                         continue
-                #elif (((illegal_right_angle < arg < illegal_left_angle) or  (illegal_right_angle < arg +360 < illegal_left_angle)) and (dist < 200)):
-                        #continue
                 elif ((theta_max + 30 > arg > theta_max) and dist < l_min):
                         l_min = dist
                 elif ((theta_min - 30 < arg < theta_min) and dist < r_min):
@@ -129,17 +105,14 @@ def get_target(lista):
                         zoneangles[9][0] = dist
                         #zoneangles[9][1] = arg
 	#### Turns away from a wall if it is too close
-        for kindex in range(10):
-                if ((illegal_right_angle < zoneangles[kindex][1] < illegal_left_angle) or  (illegal_right_angle < zoneangles[kindex][1]+360 < illegal_left_angle)):
-                        zoneangles[kindex][2] = 1
-        if (zoneangles[0][0] > r and zoneangles[0][0] !=5096 and zoneangles[1][0] > int(zoneangles[0][0]*3/8) and (zoneangles[0][2] + zoneangles[1][2] == 0)):#int(zoneangles[0][0]/2)):
+        if (zoneangles[0][0] > r and zoneangles[0][0] !=5096 and zoneangles[1][0] > int(zoneangles[0][0]/2)):
                 r = zoneangles[0][0]
                 theta = zoneangles[0][1]
-        if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]*3/8) and (zoneangles[8][2] + zoneangles[9][2] == 0)):
+        if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]/2)):
                 r = zoneangles[9][0]
                 theta = zoneangles[9][1]
-        for jindex in range(1,9):
-                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]*3/8) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]*3/8) and (zoneangles[jindex-1][2] + zoneangles[jindex][2] + zoneangles[jindex+1][2] == 0)):
+        for jindex in range(1,10):
+                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]/2) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]/2)):
                         r = zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
         if ((1 < zoneangles[4][0] < frontStopThresh) or (1 < zoneangles[5][0] < frontStopThresh)):
@@ -152,24 +125,9 @@ def get_target(lista):
         else:   
                 return (r, theta)
 
-def bt_init():
-        while True:
-                try:
-                        sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
-                        sock.connect((bd_addr, port))
-                        sock.settimeout(5.0)
-                        print("Connection Acquired 2")
-                        break
-                except Exception as e:
-                        LIDARpub.send_string("%s %i %i" % ("LADAR" ,180 ,180 ))
-                        print(e)
-                        continue
-        
+
 def get_command(state):
-        global speed
         command = ""
-        temp = ""
-        decision = ""
         while True:
                 try:
                         command = LIDARsub.recv_string(zmq.DONTWAIT)
@@ -177,13 +135,10 @@ def get_command(state):
                 except:
                         #print("Break")
                         break
-        decision, maxspeed, temp = command.split()
-        #speed = int(maxspeed)
-        if (decision == "True"):
+        if (command == "True"):
                 #print("Truu")
-                speed = int(maxspeed)
                 return True
-        elif (decision == "False"):
+        elif (command == "False"):
                 spi.xfer2([158],250000,1,8)
                 spi.xfer2([53],250000,1,8)
                 #print("Faalse")
@@ -193,6 +148,7 @@ def get_command(state):
 
 
 def main():
+        
         global lista
         global lista2
         global i
@@ -206,7 +162,7 @@ def main():
         global theta_max
         dist=0
         angle=0
-        Auto_bool = True #ENDAST FÖR TEST, ÄNDRA TILL FALSE
+        Auto_bool = False #ENDAST FÖR TEST, ÄNDRA TILL FALSE
         while True:
                 data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
                 if data:
@@ -217,14 +173,15 @@ def main():
                                         angle = int(lista[lista.find(":")+1:lista.find("\n")-1]) 
                                 except ValueError:
                                         lista = lista[lista.find("\n")+1:]
-                                        print("ValueError")
                                         continue
                                 lista2.append([dist, angle])
                                 if (dist > 1):
                                         LIDARpub.send_string("%s %i %i" % ("LADAR", angle, dist))
                                 lista = lista[lista.find("\n")+1:] 
-                                if ((170 < angle < 190) and (i > 20)):
-                                        #Auto_bool = get_command(Auto_bool)
+                                if i < 150:
+                                        i += 1
+                                else:
+                                        Auto_bool = get_command(Auto_bool)
                                         #print(Auto_bool)
                                         if Auto_bool == False:
                                                 i = 0
@@ -261,7 +218,7 @@ def main():
                                                 #Nästan lite för försiktig ---   #speed = int(startSpeed + 20/(1 + speed - startSpeed) * (1 - min(targetDist,500)/500*abs(53-angular)/60)*controlConst)
                                                 
                                                  
-                                                #speed = 168    
+                                                speed = 169    
                                                         ###   Hastighet   ###
                                                 if (targetDist > stopThresh):   
                                                         spi.xfer2([speed],250000,1,8)
@@ -273,9 +230,6 @@ def main():
                                                 LIDARpub.send_string("%s %i %i \n" % ("DECION", int(angular), int(speed)))
                                                 i = 0
                                                 lista2 = []
-                                else:
-                                        i += 1
-                                                
         
 
 
@@ -288,28 +242,15 @@ def main():
 '''
 
 if __name__ == '__main__':
-        while True:
-                try:
-                        main()
-                except bluetooth.btcommon.BluetoothError:
-                        try:
-                                sock.close()
-                                print("BT-closed")
-                        except:
-                                print("BT-pass")
-                                pass
-                        spi.xfer2([158],250000,1,8)
-                        spi.xfer2([53],250000,1,8)
-                        bt_init()
-                        continue
-                except Exception as e:
-                        print("exited " + str(e))
-                        spi.xfer2([158],250000,1,8)
-                        spi.xfer2([53],250000,1,8)
-                        sock.close()
-                        LIDARpub.close()
-                        LIDARsub.close()
-                        context.term()
+        try:
+                main()
+        finally:
+                spi.xfer2([158],250000,1,8)
+                spi.xfer2([53],250000,1,8)
+                sock.close()
+                LIDARpub.close()
+                LIDARsub.close()
+                context.term()
 
 
 
