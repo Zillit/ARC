@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from time import sleep
 from time import ctime
 import zmq
@@ -39,6 +41,11 @@ CAMERAsub.setsockopt(zmq.SUBSCRIBE, b"")
 
 def styr_transmit(data):
 	spi_styr.xfer2([data],250000,1,8)
+
+def sensor_transmit():
+	resp = spi_sens.xfer2([0xFF,0,0,0,0],120000,1,8) # Ta emot 4 sensorvärden via spi
+	data = str(resp[1])+str(resp[2])+str(resp[3])+str(resp[4]) # Gör om till en sträng
+	return data # Returnera
 
 def sendCamDataThread(threadName,delay):
     print("Enter %s " %threadName)

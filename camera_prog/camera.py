@@ -66,10 +66,10 @@ class Rectangle:
             return self.distance(self.angleClose())
     
     def rightAngle(self):
-        return defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xR - (defines.PIXEL_WIDTH/2))
+        return -defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xR - (defines.PIXEL_WIDTH/2))
 
     def leftAngle(self):
-        return defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xL - (defines.PIXEL_WIDTH/2))    
+        return -defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xL - (defines.PIXEL_WIDTH/2))
     #
     # Beräknar vinkeln till objektets närmsta hörn
     #   
@@ -109,7 +109,7 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     lower_blue = np.array([90,70,70])
     upper_blue = np.array([130,255,255])
 
-    lower_green = np.array([30,50,50])
+    lower_green = np.array([40,50,50])
     upper_green = np.array([70,255,255])
 
     kernel = np.ones((5,5), np.uint8)
@@ -149,7 +149,7 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     for cnt in contours_green:
         x,y,w,h = cv2.boundingRect(cnt)
         tmp = Rectangle(x, defines.PIXEL_HEIGHT - y, x+w, defines.PIXEL_HEIGHT - (y+h))
-        if (tmp.area() > 600):
+        if (tmp.area() > 1000):
             objects_green.append(tmp) 
             cv2.rectangle(img_green, (x,y), (x+w,y+h), (100,255,40), 2)  
         
@@ -173,11 +173,11 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
         z = 1
         GOAL_COUNTER = GOAL_COUNTER + 1
         
-        CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 100))
+        #CAMERApub.send_string("%s %i %i \n" %("ARCCAM", GOAL_COUNTER, 100))
         print(GOAL_COUNTER)
 
     if len(objects_green) != 0:
-         CAMERApub.send_string("%s %i %i \n" %("ARCCAM", objects_green[0].leftAngle(), objects_green[0].rightAngle()))
+         CAMERApub.send_string("%s %i %i \n" %("ARCCAM", objects_green[0].leftAngle() + 3, objects_green[0].rightAngle() - 3))
 
     rawCapture.truncate(0)
 
