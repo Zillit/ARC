@@ -52,8 +52,7 @@
 using namespace std;
 using namespace OPENGL;
 
-
-//For gui models. 
+//For gui models.
 //One of the following two is always visable and rotate to indicate running program.
 Model *manualModel;
 Model *autoModel;
@@ -79,7 +78,7 @@ GLuint MAXIMUM_LADAR_POINTS = 400;
 GLfloat LADAR_SCALER = 5;
 GLint MAX_SPEED = 10;
 GLint MIN_SPEED = 0;
-GLint MIN_AUTO_PILOT_SPEED=10;
+GLint MIN_AUTO_PILOT_SPEED = 10;
 GLint MIN_THETA = -47;
 GLint MAX_THETA = 47;
 GLint AIM_MILLISECONDS = 200;
@@ -87,9 +86,9 @@ GLint LOOK_AHEAD_TARGET = 80;
 GLint TURN_SCALER = 1;
 GLint DISTANCE_SCALER = 1;
 GLuint SIZE_OF_PLANNED_ROAD = 2;
-int NUMBER_OF_LAPS=2;
-bool UTILITY_MODE=false;
-bool FUCKINGAUTO=false;
+int NUMBER_OF_LAPS = 2;
+bool UTILITY_MODE = false;
+bool FUCKINGAUTO = false;
 
 boost::circular_buffer<pair<GLfloat, GLfloat>> ladarPoints(MAXIMUM_LADAR_POINTS);
 //Required to provide thread safty
@@ -98,7 +97,7 @@ boost::mutex carMutex;
 //Vectors for setting up the camera
 vec3 CAM_POS{0, 30, 80}, TARGET{0, 0, 0}, UP{0, 1, 0};
 //Matrix for the floor model.
-mat4 modelCoords, lineModelCoords, iconModelCoords,speedModelCoords,utilityModelCoords, targetModelCoords;
+mat4 modelCoords, lineModelCoords, iconModelCoords, speedModelCoords, utilityModelCoords, targetModelCoords;
 GLfloat PI = 3.1415927;
 //-70 seems good to compensate for what is sent.
 GLfloat LADAR_ANGLE_OFFSET = -70; //(-0.5)*PI/180; //LADAR does consider straigth ahead to be angle 0.
@@ -127,32 +126,50 @@ class CarPilot
     {
         speed = std::min(std::max(newSpeed, MIN_SPEED), MAX_SPEED);
         theta = std::min(std::max(newTheta, MIN_THETA), MAX_THETA);
-        update_car_pilot=true;
+        update_car_pilot = true;
     };
     void carTick();
-    void setCurrentSpeedBasedOnSensors(float speed) {}
+    void setCurrentSpeedBasedOnSensors(int spe) { current_speed = spe; }
     void sendMessage(string message);
     static char *s_recv(void *socket);
     static int s_send(void *socket, char *string);
     void paintPlan(Model *map);
-    void paintSpeedGage(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName);
-    void paintTarget(Model *m,GLuint program, const char* vertexVariableName, const char* normalVariableName);
-    void enableAutoPilot() { auto_pilot = true; FUCKINGAUTO=true; sendMessage("MODEAU " + to_string(MAX_SPEED) + " 0");};
+    void paintSpeedGage(Model *m, GLuint program, const char *vertexVariableName, const char *normalVariableName);
+    void paintTarget(Model *m, GLuint program, const char *vertexVariableName, const char *normalVariableName);
+    void enableAutoPilot()
+    {
+        auto_pilot = true;
+        FUCKINGAUTO = true;
+        sendMessage("MODEAU " + to_string(MAX_SPEED) + " 0");
+    };
 
     void changeDepthOfThetaSearch(int delta) { depth_of_theta_search = std::max(depth_of_theta_search + delta, 1); };
-    void disableAutoPilot() {
+    void disableAutoPilot()
+    {
         // boost::lock_guard<boost::mutex> guard(carMutex);
 
-         auto_pilot = false; sendMessage("MODEMA 10 0" );};
+        auto_pilot = false;
+        sendMessage("MODEMA 10 0");
+    };
     void printVariables();
     void backup(int dV) { speed = std::min(std::max(speed += dV, -MAX_SPEED), MAX_SPEED); };
     float getAngle(int x, int y);
-    int getState(){if(auto_pilot){return 1;} else {return 0;}};
-    void setLastStyror(int ang,int spe)
+    int getState()
+    {
+        if (auto_pilot)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    };
+    void setLastStyror(int ang, int spe)
     {
         // boost::lock_guard<boost::mutex> guard(carMutex);
-        last_target_ofset=(int)std::sin(ang*PI/180)*spe;
-        last_target_depth=(int)(FLOOR_DEPT_RES-spe);
+        last_target_ofset = (int)std::sin(ang * PI / 180) * spe;
+        last_target_depth = (int)(FLOOR_DEPT_RES - spe);
     }
     void setSensorSpeed(int right, int left)
     {
@@ -180,9 +197,9 @@ class CarPilot
     std::vector<pair<GLint, GLint>> planned_path;
     GLfloat con_of_path_search_increase = 2;
     bool auto_pilot = false;
-    int last_target_depth=0;
-    int last_target_ofset=0;
-    int number_of_ticks_turning=2;
+    int last_target_depth = 0;
+    int last_target_ofset = 0;
+    int number_of_ticks_turning = 2;
 };
 float CarPilot::getAngle(int x, int y)
 {
@@ -203,7 +220,7 @@ void CarPilot::changeDirection(int dTheta)
 {
     theta = std::min(std::max(theta += dTheta, MIN_THETA), MAX_THETA);
     update_car_pilot = true;
-    number_of_ticks_turning=2;
+    number_of_ticks_turning = 2;
 }
 void modifyFloorY(GLint, GLint, GLfloat, Model *, bool);
 //Updates driving instruction and keep in contact with the hardware
@@ -270,29 +287,29 @@ void CarPilot::carTick()
     //     sendMessage(address + " " + to_string(speed) + " " + to_string(theta));
     //     clock_last = chrono::high_resolution_clock::now();
     // }
-    if((dTime > duration_between_updates) && auto_pilot)
+    if ((dTime > duration_between_updates) && auto_pilot)
     {
-        if(!FUCKINGAUTO)
+        if (!FUCKINGAUTO)
         {
             disableAutoPilot();
-            FUCKINGAUTO=true;
+            FUCKINGAUTO = true;
         }
     }
     else if (dTime > duration_between_updates)
     {
         // planRoad();
         sendMessage("STYROR " + to_string(speed) + " " + to_string(theta));
-        if(number_of_ticks_turning<0)
+        if (number_of_ticks_turning < 0)
         {
             if (theta > 0)
-                theta=0;
+                theta = 0;
             else if (theta < 0)
-                theta=0;
-            number_of_ticks_turning=2;
+                theta = 0;
+            number_of_ticks_turning = 2;
         }
         number_of_ticks_turning--;
         clock_last = chrono::high_resolution_clock::now();
-        cout << address << " " << to_string(speed) <<" " << to_string(theta) << endl;
+        cout << address << " " << to_string(speed) << " " << to_string(theta) << endl;
     }
 }
 static char *CarPilot::s_recv(void *socket)
@@ -323,9 +340,10 @@ void CarPilot::sendMessage(string message)
 }
 GLfloat getFloorY(GLint, GLint, Model *);
 //Will give a representtation of the planed path on the map
-void DrawLinesModel(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName,GLuint number_of_lines);
+void DrawLinesModel(Model *m, GLuint program, const char *vertexVariableName, const char *normalVariableName, GLuint number_of_lines);
 void CarPilot::paintPlan(Model *map)
 {
+    // try {
     // int endDepth = SIZE_OF_PLANNED_ROAD;
     // for (int iter = 0; iter < endDepth; iter++)
     // {
@@ -333,7 +351,7 @@ void CarPilot::paintPlan(Model *map)
     //     map->vertexArray[iter*3+1]=0.01;
     //     map->vertexArray[iter*3+2]=FLOOR_DEPT_RES-iter;
     // }
-    // //make sure that it is not painted beyound the depth
+    // // make sure that it is not painted beyound the depth
     // // for (int iter =endDepth;iter<PLANNING_DEPTH;iter++)
     // // {
     // //     map->vertexArray[iter*3]=map->vertexArray[endDepth*3-3];
@@ -342,53 +360,57 @@ void CarPilot::paintPlan(Model *map)
     // // }
     // ReloadModelData(map);
     // DrawLinesModel(map, program_terrain,"inPosition", "inNormal", SIZE_OF_PLANNED_ROAD-1);
-    
+    //  }
+    //  catch (const std::exception& e)
+    //  {
+    //      cout << "Exception in paintPlan: " << e.what() << endl;
+    //  }
 }
-void CarPilot::paintSpeedGage(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName)
+void CarPilot::paintSpeedGage(Model *m, GLuint program, const char *vertexVariableName, const char *normalVariableName)
 {
     if (m != NULL)
-	{
-		GLint loc;
-		
-		glBindVertexArray(m->vao);	// Select VAO
+    {
+        GLint loc;
 
-		glBindBuffer(GL_ARRAY_BUFFER, m->vb);
-		loc = glGetAttribLocation(program, vertexVariableName);
-		if (loc >= 0)
-		{
-			glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0); 
-			glEnableVertexAttribArray(loc);
-		}
-		else
-			cout << "paintSpeedGage failure1" << endl;
-		
-		if (normalVariableName!=NULL)
-		{
-			loc = glGetAttribLocation(program, normalVariableName);
-			if (loc >= 0)
-			{
-				glBindBuffer(GL_ARRAY_BUFFER, m->nb);
-				glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
-				glEnableVertexAttribArray(loc);
-			}
-			else
-				cout << "paintSpeedGage failure2" << endl;
-		}
-        glDrawArrays(GL_TRIANGLE_FAN,0,5+std::abs(speed)*8);
+        glBindVertexArray(m->vao); // Select VAO
+
+        glBindBuffer(GL_ARRAY_BUFFER, m->vb);
+        loc = glGetAttribLocation(program, vertexVariableName);
+        if (loc >= 0)
+        {
+            glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+            glEnableVertexAttribArray(loc);
+        }
+        else
+            cout << "paintSpeedGage failure1" << endl;
+
+        if (normalVariableName != NULL)
+        {
+            loc = glGetAttribLocation(program, normalVariableName);
+            if (loc >= 0)
+            {
+                glBindBuffer(GL_ARRAY_BUFFER, m->nb);
+                glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+                glEnableVertexAttribArray(loc);
+            }
+            else
+                cout << "paintSpeedGage failure2" << endl;
+        }
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 5 + std::abs((int)(current_speed)*8));
     }
 }
-void CarPilot::paintTarget(Model *m, GLuint p, const char* vertexVariableName, const char* normalVariableName)
+void CarPilot::paintTarget(Model *m, GLuint p, const char *vertexVariableName, const char *normalVariableName)
 {
-    targetModelCoords=camMatrix*T(last_target_ofset,0.1,last_target_depth)*mat3tomat4(InverseTranspose(modelCoords));
-    total=targetModelCoords;
+    targetModelCoords = camMatrix * T(last_target_ofset, 0.1, last_target_depth) * mat3tomat4(InverseTranspose(modelCoords));
+    total = targetModelCoords;
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
-    DrawModel(m,p,vertexVariableName, normalVariableName, NULL);
+    DrawModel(m, p, vertexVariableName, normalVariableName, NULL);
 }
 //Generate a clear path based on the information on the marching squere
 void CarPilot::planRoad()
 {
     int xStart, xEnd;
-    int pathLength=0;
+    int pathLength = 0;
     planned_path.clear();
     //For initilizing the algoritm.
     pair<int, int> clearSpace = {MAP_MIDDLE_X - 2, 2};
@@ -431,13 +453,13 @@ void CarPilot::planRoad()
             {
                 planned_path.pop_back();
             }
-            SIZE_OF_PLANNED_ROAD = std::max(depthIterator - 3,1);
+            SIZE_OF_PLANNED_ROAD = std::max(depthIterator - 3, 1);
             return;
         }
         hasFoundOpenSpace = false;
         pathLength = depthIterator;
     }
-    SIZE_OF_PLANNED_ROAD=pathLength;
+    SIZE_OF_PLANNED_ROAD = pathLength;
 }
 CarPilot car;
 //Converts data into x and z coordinates
@@ -650,18 +672,16 @@ void init(void)
     printError("GL inits");
     modelCoords = IdentityMatrix();
     modelCoords = T(-64, 0, -128);
-    lineModelCoords =IdentityMatrix();
-    lineModelCoords =modelCoords;
-    speedModelCoords=modelCoords;
-
-    
+    lineModelCoords = IdentityMatrix();
+    lineModelCoords = modelCoords;
+    speedModelCoords = modelCoords;
 
     projectionMatrix = frustum(LEFT_, RIGHT_, BOTTOM_, TOP_, NEAR_, FAR_);
     rotationMatrix = IdentityMatrix();
     total = IdentityMatrix();
     targetModelCoords = IdentityMatrix();
-    mat4 HUDcamMatrix=IdentityMatrix();
-    HUDcamMatrix=lookAt(0,0,2,0,0,0,0,1,0);
+    mat4 HUDcamMatrix = IdentityMatrix();
+    HUDcamMatrix = lookAt(0, 0, 2, 0, 0, 0, 0, 1, 0);
 
     // camMatrix = lookAt(0, 5, 15, 0, 0, 0, 0, 1, 0); //T(0,0,-2);
     updateCamera(CAM_POS, TARGET);
@@ -669,12 +689,12 @@ void init(void)
     program = loadShaders("persp.vert", "persp.frag");
     manualModel = LoadModelPlus("teapot.obj");
     CenterModel(manualModel);
-    ScaleModel(manualModel,0.3,0.3,0.3);
+    ScaleModel(manualModel, 0.3, 0.3, 0.3);
     ReloadModelData(manualModel);
     autoModel = LoadModelPlus("bunny.obj");
     utilityModel = LoadModelPlus("utility.obj");
     CenterModel(utilityModel);
-    ScaleModel(utilityModel,0.3,0.3,0.3);
+    ScaleModel(utilityModel, 0.3, 0.3, 0.3);
     ReloadModelData(utilityModel);
     program_terrain = loadShaders("terrain.vert", "terrain.frag");
     printError("init shader");
@@ -735,20 +755,28 @@ void fetchLADARPoints()
             }
             else if (instruction == "ARCCAM")
             {
-                if(data1>NUMBER_OF_LAPS)
+                if (data1 > NUMBER_OF_LAPS)
                 {
-                    FUCKINGAUTO=false;
+                    FUCKINGAUTO = false;
                 }
-                int numberoflaps=data1-1;
+                int numberoflaps = data1 - 1;
                 cout << "Number of times seen finish lines: " << numberoflaps << endl;
-
+            }
+            else if (instruction == "ARCANG")
+            {
+                cout << "Obsticle between angle: " << data1 << " and " << data2 << endl;
             }
             else if (instruction == "DECION")
             {
-                cout << "Desison taken: " << data1-53 << ", " << data2-158 << endl;
-                
-                car.setLastStyror(data1,data2);
+                cout << "Desison taken: " << data1 - 53 << ", " << data2 - 158 << endl;
+
+                car.setLastStyror(data1, data2);
                 // car.setSpeed(data1-53,data2-158);
+            }
+            else if (instruction == "ARCSPE")
+            {
+                car.setCurrentSpeedBasedOnSensors(data1);
+                cout << "Speed of ARC: " << data1 << " cm/s " << endl;
             }
             else
             {
@@ -758,26 +786,26 @@ void fetchLADARPoints()
         this_thread::sleep_for(chrono::microseconds(500));
     }
 }
-Model *generateSpeedGage(GLfloat radius, GLfloat xOffset=0, GLfloat yOffset=0)
+Model *generateSpeedGage(GLfloat radius, GLfloat xOffset = 0, GLfloat yOffset = 0)
 {
-    GLuint vertexCount=361;
-    GLuint vertexArraySize =sizeof(GLfloat)*3*vertexCount;
+    GLuint vertexCount = 361;
+    GLuint vertexArraySize = sizeof(GLfloat) * 3 * vertexCount;
     GLfloat vertexArray[vertexArraySize];
-    GLint triangleCount=359;
+    GLint triangleCount = 359;
     GLfloat normalArray[vertexArraySize];
-    vertexArray[0]=0;
-    vertexArray[1]=0;
-    vertexArray[2]=0;
-    for (int iter=0;iter<vertexCount-1;iter++)
+    vertexArray[0] = 0;
+    vertexArray[1] = 0;
+    vertexArray[2] = 0;
+    for (int iter = 0; iter < vertexCount - 1; iter++)
     {
-        vertexArray[3+iter*3]=std::cos(iter*PI/180)*radius;
-        vertexArray[3+iter*3+1]=std::sin(iter*PI/180)*radius;
-        vertexArray[3+iter*3+2]=0;
-        normalArray[iter*3]=0.2;
-        normalArray[iter*3+1]=0.6;
-        normalArray[iter*3+2]=-1;
+        vertexArray[3 + iter * 3] = std::cos(iter * PI / 180) * radius;
+        vertexArray[3 + iter * 3 + 1] = std::sin(iter * PI / 180) * radius;
+        vertexArray[3 + iter * 3 + 2] = 0;
+        normalArray[iter * 3] = 0.2;
+        normalArray[iter * 3 + 1] = 0.6;
+        normalArray[iter * 3 + 2] = -1;
     }
-    Model *model =LoadDataToModel(
+    Model *model = LoadDataToModel(
         &vertexArray[0],
         &normalArray[0],
         NULL,
@@ -789,69 +817,68 @@ Model *generateSpeedGage(GLfloat radius, GLfloat xOffset=0, GLfloat yOffset=0)
 }
 Model *generateEmptyPlannedPath()
 {
-    GLuint vertexCount=PLANNING_DEPTH;
-    GLuint vertexArraySize = sizeof(GLfloat)*3*vertexCount;
-    GLuint indexArraySize=sizeof(GLfloat)*3*(PLANNING_DEPTH-1);
+    GLuint vertexCount = PLANNING_DEPTH;
+    GLuint vertexArraySize = sizeof(GLfloat) * 3 * vertexCount;
+    GLuint indexArraySize = sizeof(GLfloat) * 3 * (PLANNING_DEPTH - 1);
     GLfloat vertexArray[vertexArraySize];
     GLuint indexArray[indexArraySize];
-    GLint lineCount=(PLANNING_DEPTH-1);
+    GLint lineCount = (PLANNING_DEPTH - 1);
     GLfloat normalArray[vertexArraySize];
     //make sure that each y coord is set to 1
-    for (int iter=0;iter<vertexCount;iter++)
+    for (int iter = 0; iter < vertexCount; iter++)
     {
-        vertexArray[iter*3+1]=0.01;
+        vertexArray[iter * 3 + 1] = 0.01;
         // vertexArray[iter*3+1]=1;
-        normalArray[iter*3]=1;
-
+        normalArray[iter * 3] = 1;
     }
-    Model *model =LoadDataToModel(
+    Model *model = LoadDataToModel(
         &vertexArray[0],
         &normalArray[0],
         NULL,
         NULL,
         NULL,
         vertexCount,
-        lineCount+1);
+        lineCount + 1);
     return model;
 }
-void DrawLinesModel(Model *m, GLuint program, const char* vertexVariableName, const char* normalVariableName, GLuint number_of_lines)
+void DrawLinesModel(Model *m, GLuint program, const char *vertexVariableName, const char *normalVariableName, GLuint number_of_lines)
 {
     if (m != NULL)
-	{
-		GLint loc;
-		
-		glBindVertexArray(m->vao);	// Select VAO
+    {
+        GLint loc;
 
-		glBindBuffer(GL_ARRAY_BUFFER, m->vb);
-		loc = glGetAttribLocation(program, vertexVariableName);
-		if (loc >= 0)
-		{
-			glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0); 
-			glEnableVertexAttribArray(loc);
-		}
-		else
-			cout << "DrawLinesModel failure1" << endl;
-		
-		if (normalVariableName!=NULL)
-		{
-			loc = glGetAttribLocation(program, normalVariableName);
-			if (loc >= 0)
-			{
-				glBindBuffer(GL_ARRAY_BUFFER, m->nb);
-				glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
-				glEnableVertexAttribArray(loc);
-			}
-			else
-				cout << "DrawLinesModel failure2" << endl;
-		}
-        glDrawArrays(GL_LINE_STRIP,0, number_of_lines);
+        glBindVertexArray(m->vao); // Select VAO
+
+        glBindBuffer(GL_ARRAY_BUFFER, m->vb);
+        loc = glGetAttribLocation(program, vertexVariableName);
+        if (loc >= 0)
+        {
+            glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+            glEnableVertexAttribArray(loc);
+        }
+        else
+            cout << "DrawLinesModel failure1" << endl;
+
+        if (normalVariableName != NULL)
+        {
+            loc = glGetAttribLocation(program, normalVariableName);
+            if (loc >= 0)
+            {
+                glBindBuffer(GL_ARRAY_BUFFER, m->nb);
+                glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+                glEnableVertexAttribArray(loc);
+            }
+            else
+                cout << "DrawLinesModel failure2" << endl;
+        }
+        glDrawArrays(GL_LINE_STRIP, 0, number_of_lines);
     }
 }
 // DrawLinesModel(map, program_terrain,"inPosition", "inNormal", SIZE_OF_PLANNED_ROAD-1);
 // void DrawDot(GLuint program, vec3 coord)
 // {
 //     GLint loc;
-    
+
 // }
 //Main loop of the program, paint all the things on screen.
 void display(void)
@@ -879,39 +906,39 @@ void display(void)
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "projMatrix"), 1, GL_TRUE, projectionMatrix.m);
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
     DrawModel(marchingSquereModel, program_terrain, "inPosition", "inNormal", "inTexCoord");
-    total=lineModelCoords;
+    total = lineModelCoords;
     glUniformMatrix4fv(glGetUniformLocation(program_terrain, "mdlMatrix"), 1, GL_TRUE, total.m);
     car.paintPlan(plannedPathModel);
     car.paintTarget(targetModel, program_terrain, "inPosition", "inNormal");
     glUseProgram(program);
     mat4 rotationMatrix = Rz(a / 3) * Ry(a);
-    iconModelCoords=rotationMatrix;
-    iconModelCoords.m[3]=-5;
-    iconModelCoords.m[7]=5;
-    iconModelCoords.m[11]=-10;
+    iconModelCoords = rotationMatrix;
+    iconModelCoords.m[3] = -5;
+    iconModelCoords.m[7] = 5;
+    iconModelCoords.m[11] = -10;
     // rotationMatrix=T()
     glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, iconModelCoords.m);
-    if(car.getState()==0)
+    if (car.getState() == 0)
     {
         DrawModel(manualModel, program, "inPosition", "inNormal", "inTexCoord");
     }
-    else if(car.getState()==1)
+    else if (car.getState() == 1)
     {
         DrawModel(autoModel, program, "inPosition", "inNormal", "inTexCoord");
     }
-    if(UTILITY_MODE)
+    if (UTILITY_MODE)
     {
-        utilityModelCoords=rotationMatrix;
-        utilityModelCoords.m[3]=-5;
-        utilityModelCoords.m[7]=2;
-        utilityModelCoords.m[11]=-10;
+        utilityModelCoords = rotationMatrix;
+        utilityModelCoords.m[3] = -5;
+        utilityModelCoords.m[7] = 2;
+        utilityModelCoords.m[11] = -10;
         glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, utilityModelCoords.m);
         DrawModel(utilityModel, program, "inPosition", "inNormal", "inTexCoord");
     }
     // speedModelCoords=Ry(180);
-    speedModelCoords.m[3]=4;
-    speedModelCoords.m[7]=3;
-    speedModelCoords.m[11]=-10;
+    speedModelCoords.m[3] = 4;
+    speedModelCoords.m[7] = 3;
+    speedModelCoords.m[11] = -10;
 
     glUniformMatrix4fv(glGetUniformLocation(program, "mdlMatrix"), 1, GL_TRUE, speedModelCoords.m);
     car.paintSpeedGage(speedGage, program, "inPosition", "inNormal");
@@ -939,7 +966,7 @@ void cameraManipulationInput(unsigned char key, int x, int y)
     switch (key)
     {
     case 't':
-        FUCKINGAUTO=true;
+        FUCKINGAUTO = true;
         car.enableAutoPilot();
         sendMessage("ARCCAM " + to_string(0) + " " + to_string(NUMBER_OF_LAPS));
         break;
@@ -951,20 +978,20 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         cout << "Number of laps before stoping: " << NUMBER_OF_LAPS << endl;
         break;
     case '2':
-        NUMBER_OF_LAPS++; 
+        NUMBER_OF_LAPS++;
         cout << "Number of laps before stoping: " << NUMBER_OF_LAPS << endl;
         break;
     case '0':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
             LADAR_SCALER += 0.5;
             cout << LADAR_SCALER << endl;
         }
         break;
     case '9':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        LADAR_SCALER = std::max(LADAR_SCALER - 0.5, 1.0);
+            LADAR_SCALER = std::max(LADAR_SCALER - 0.5, 1.0);
         }
         break;
     case '5':
@@ -975,52 +1002,52 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         MAX_SPEED--;
         break;
     case '6':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        LOOK_AHEAD_TARGET--;
+            LOOK_AHEAD_TARGET--;
         }
         break;
     case '7':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        LOOK_AHEAD_TARGET++;
-        cout << "LOOK_AHEAD_TARGET: " << LOOK_AHEAD_TARGET << endl;
+            LOOK_AHEAD_TARGET++;
+            cout << "LOOK_AHEAD_TARGET: " << LOOK_AHEAD_TARGET << endl;
         }
         break;
     case '8':
         car.printVariables();
         break;
     case 'w':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        CAM_POS += vec3(0, 0, -1);
-        TARGET += vec3(0, 0, -1);
-        updateCamera(CAM_POS, TARGET);
+            CAM_POS += vec3(0, 0, -1);
+            TARGET += vec3(0, 0, -1);
+            updateCamera(CAM_POS, TARGET);
         }
         break;
     case 's':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        CAM_POS += vec3(0, 0, 1);
-        TARGET += vec3(0, 0, 1);
-        updateCamera(CAM_POS, TARGET);
-        cout << "camera pos " << CAM_POS.z << " target " << TARGET.z << endl;
+            CAM_POS += vec3(0, 0, 1);
+            TARGET += vec3(0, 0, 1);
+            updateCamera(CAM_POS, TARGET);
+            cout << "camera pos " << CAM_POS.z << " target " << TARGET.z << endl;
         }
         break;
     case 'd':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        CAM_POS += vec3(1, 0, 0);
-        TARGET += vec3(1, 0, 0);
-        updateCamera(CAM_POS, TARGET);
+            CAM_POS += vec3(1, 0, 0);
+            TARGET += vec3(1, 0, 0);
+            updateCamera(CAM_POS, TARGET);
         }
         break;
     case 'a':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        CAM_POS += vec3(-1, 0, 0);
-        TARGET += vec3(-1, 0, 0);
-        updateCamera(CAM_POS, TARGET);
+            CAM_POS += vec3(-1, 0, 0);
+            TARGET += vec3(-1, 0, 0);
+            updateCamera(CAM_POS, TARGET);
         }
         break;
     case 'i':
@@ -1039,12 +1066,12 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         car.changeDirection(10);
         break;
     case 'b':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        //Reset camera to start values
-        CAM_POS = {0, 30, 80};
-        TARGET = {0, 0, 25};
-        updateCamera(CAM_POS, TARGET);
+            //Reset camera to start values
+            CAM_POS = {0, 30, 80};
+            TARGET = {0, 0, 25};
+            updateCamera(CAM_POS, TARGET);
         }
         break;
     case 'q':
@@ -1057,28 +1084,28 @@ void cameraManipulationInput(unsigned char key, int x, int y)
         // system("../../../python user_ssh.py");
         break;
     case 'f':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        TURN_SCALER++;
-        cout << "Turn Scaler: " << TURN_SCALER << endl;
+            TURN_SCALER++;
+            cout << "Turn Scaler: " << TURN_SCALER << endl;
         }
         break;
     case 'v':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-        TURN_SCALER = max(1, TURN_SCALER - 1);
+            TURN_SCALER = max(1, TURN_SCALER - 1);
         }
         break;
     case 'm':
         car.backup(-3);
         break;
     case 'u':
-        if(UTILITY_MODE)
+        if (UTILITY_MODE)
         {
-            UTILITY_MODE=false;
+            UTILITY_MODE = false;
         }
         else
-        UTILITY_MODE=true;
+            UTILITY_MODE = true;
         break;
     default:
         break;
@@ -1111,7 +1138,7 @@ int main(int argc, char *argv[])
     glutInitWindowSize(1200, 1200);
     glutCreateWindow(WINDOW_NAME.c_str());
     glutDisplayFunc(display);
-	glutTimerFunc(20, &OnTimer, 0);
+    glutTimerFunc(20, &OnTimer, 0);
     init();
     setUpKeyboardFunction();
 
@@ -1127,7 +1154,7 @@ int main(int argc, char *argv[])
     subscriber.setsockopt(ZMQ_SUBSCRIBE, filter, strlen(filter));
     marchingSquereModel = generateFlatTerrrain();
     plannedPathModel = generateEmptyPlannedPath();
-    speedGage=generateSpeedGage(2.0);
+    speedGage = generateSpeedGage(2.0);
     paintLadarPoints(ladarPoints, modelCoords, marchingSquereModel);
 
     //Initolising the main loop
