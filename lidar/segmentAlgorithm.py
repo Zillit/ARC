@@ -79,7 +79,7 @@ def get_target(lista):
                 except:
                         #print("Break")
                         break
-        if (messageCam.split()[0] == "ARCCAM"):
+        if (messageCam.split()[0] == "ARCARG"):
                 illegal_left_angle = int(messageCam.split()[1]) + diff + 360
                 illegal_right_angle = int(messageCam.split()[2]) + diff + 360
         #if 
