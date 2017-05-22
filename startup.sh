@@ -1,9 +1,11 @@
 #!/bin/bash
 # Start all of the programs in the correct order
 
-#sleep 3
+sleep 30
 python3 lidar/segmentAlgoritm.py
-#sleep 3
+sleep 2
+python camera_prog/camera.py
+sleep 2
 python arc_ssh.py
 #sleep 3
 

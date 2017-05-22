@@ -158,9 +158,9 @@ def bt_init():
                         sock.settimeout(5.0)
                         print("Connection Acquired 2")
                         break
-                except:
+                except Exception as e:
                         LIDARpub.send_string("%s %i %i" % ("LADAR" ,180 ,180 ))
-                        print("#daww")
+                        print(e)
                         continue
         
 def get_command(state):
