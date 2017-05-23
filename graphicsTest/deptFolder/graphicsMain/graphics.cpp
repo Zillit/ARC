@@ -775,8 +775,18 @@ void fetchLADARPoints()
             }
             else if (instruction == "ARCSPE")
             {
-                car.setCurrentSpeedBasedOnSensors(data1);
-                cout << "Speed of ARC: " << data1 << " cm/s " << endl;
+                cout << "Speed of ARC: ";
+                if(data1 == 0)
+                { 
+                    car.setCurrentSpeedBasedOnSensors(0);
+                    cout << 0;
+                }
+                else
+                {
+                    car.setCurrentSpeedBasedOnSensors(10 * 3.14 * 976 / data1);
+                    cout << 10 * 3.14 * 976 / data1;
+                }
+                cout  << " cm/s " << endl;
             }
             else
             {
@@ -1135,7 +1145,7 @@ int main(int argc, char *argv[])
     //Function for correctly setting up OpenGL
     glutInit(&argc, argv);
     glutInitContextVersion(3, 2);
-    glutInitWindowSize(1200, 1200);
+    glutInitWindowSize(600, 600);
     glutCreateWindow(WINDOW_NAME.c_str());
     glutDisplayFunc(display);
     glutTimerFunc(20, &OnTimer, 0);
