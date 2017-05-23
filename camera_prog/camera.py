@@ -19,7 +19,7 @@ CAMERAsub.setsockopt(zmq.SUBSCRIBE, b"")
 z = 1
 
 #
-# Ett färgat objekt eller markering
+# Ett fergat objekt eller markering
 #
 class Rectangle:    
     def __init__(self, xL, yT, xR, yB):
@@ -38,18 +38,18 @@ class Rectangle:
     def xR(self):
         return self.xR
     #
-    # Beräknar avståndet "rakt fram" till objektet
+    # Bereknar avstandet "rakt fram" till objektet
     #
     def yDistance(self):
         return defines.HEIGHT_OF_CAMERA * math.tan(((90 - defines.ANGEL_OF_CAMERA - (defines.VERTICAL_FOV/2)) + 
         (defines.VERTICAL_FOV/defines.PIXEL_HEIGHT * (defines.PIXEL_HEIGHT - self.yB)))*math.pi/180)
     #
-    # Beräknar det totala avståndet till objektet
+    # Bereknar det totala avstandet till objektet
     #
     def distance(self, angle):
         return self.yDistance() / math.cos(angle * math.pi/180)
     #
-    # Beräknar vinkeln till objektets närmsta hörn
+    # Bereknar vinkeln till objektets nermsta horn
     #    
     def angleClose(self): 
         left_angle = defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xL - (defines.PIXEL_WIDTH/2))
@@ -71,7 +71,7 @@ class Rectangle:
     def leftAngle(self):
         return -defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xL - (defines.PIXEL_WIDTH/2))
     #
-    # Beräknar vinkeln till objektets närmsta hörn
+    # Bereknar vinkeln till objektets narmsta horn
     #   
     def angleFar(self):
         left_angle = defines.HORIZONTAL_FOV/defines.PIXEL_WIDTH * (self.xL - (defines.PIXEL_WIDTH/2))
@@ -106,8 +106,8 @@ for img in camera.capture_continuous(rawCapture, format="bgr", use_video_port=Tr
     #_, frame = cap.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
-    lower_blue = np.array([90,70,70])
-    upper_blue = np.array([130,255,255])
+    lower_blue = np.array([160,70,70])
+    upper_blue = np.array([180,255,255])
 
     lower_green = np.array([40,50,50])
     upper_green = np.array([70,255,255])
