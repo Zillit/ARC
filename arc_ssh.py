@@ -31,9 +31,9 @@ CAMERAsub.connect("tcp://localhost:2505")
 #CAMERApub = context.socket(zmq.REP)
 #CAMERApub.connect("tcp://localhost:5567")
 USERrep = context.socket(zmq.REP)
-zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","pi@nhkim91.ddns.net:4444",password = "")
+zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5550","pi@nhkim91.ddns.net:4444",password = "NewArc11")
 ARCpub = context.socket(zmq.PUB)
-zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","pi@nhkim91.ddns.net:4444",password = "")
+zmq.ssh.tunnel_connection(ARCpub,"tcp://localhost:4550","pi@nhkim91.ddns.net:4444",password = "NewArc11")
 
 ARCpub.setsockopt(zmq.SNDHWM,100)
 LIDARsub.setsockopt(zmq.SUBSCRIBE, b"")
@@ -86,6 +86,9 @@ def sendRealDataThread(threadName,delay):
                 print mess
                 ARCpub.send_string("%s %i *%i \n" %("ARCSPE", sensor_transmit(), 0))
                 message_sent=0
+                #print "speed"
+                print "speed: "
+                print sensor_transmit()
             try:
                 messageCam=CAMERAsub.recv_string(zmq.DONTWAIT)
                 ARCpub.send_string("%s 0" %(messageCam))

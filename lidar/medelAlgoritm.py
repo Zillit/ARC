@@ -48,8 +48,10 @@ startSpeed = 168
 controlConst = 0.25
 closeConst = 1
 diff = 20 # Vilken funkar bäst? 18 eller 20 eller något annat?
+angular = diff
 theta_min = 285 + diff
 theta_max = 75 + diff
+whenToWait = 0
 
 spi = spidev.SpiDev()
 spi.open(0,0)
@@ -59,16 +61,21 @@ spi_sens = spidev.SpiDev()
 spi_sens.open(0,1) 
 spi_sens.mode = 0b00
 
+
+
 def get_target(lista):
         global theta_max
         global theta_min
         global stopThresh
+        global whenToWait
+        global angular
         r = 0
         theta = diff
+        averageweight = 0.05
         maximus = len(lista)-1
         l_min = 100
         r_min = 100
-        zoneangles = [[5096,theta_min+8,0],[5096,theta_min+23,0],[5096,theta_min+38,0],[5096,theta_min+53,0],[5096,theta_max-83,0],[5096,theta_max-68,0],[5096,theta_max-53,0],[5096,theta_max-38,0],[5096,theta_max-23,0],[5096,theta_max-8,0]]
+        zoneangles = [[5096,theta_min+8,0,0,0],[5096,theta_min+23,0,0,0],[5096,theta_min+38,0,0,0],[5096,theta_min+53,0,0,0],[5096,theta_max-83,0,0,0],[5096,theta_max-68,0,0,0],[5096,theta_max-53,0,0,0],[5096,theta_max-38,0,0,0],[5096,theta_max-23,0,0,0],[5096,theta_max-8,0,0,0]]
         messageCam = "0 0 0"
         illegal_left_angle = 0
         illegal_right_angle = 0
@@ -87,6 +94,7 @@ def get_target(lista):
         for i in range(maximus+1):
                 dist = lista[i][0]
                 arg = lista[i][1]
+                
                 if (theta_max + 30 < arg < theta_min - 30):
                         continue
                 elif ((theta_max + 30 > arg > theta_max) and dist < l_min):
@@ -96,50 +104,100 @@ def get_target(lista):
 		### TODO: Adaptive code that figures out adequate number of regions by itself, and puts them in a list or something
 		### Range atm: 285-299, 300-314 etc, and 0-14, 15-29 etc
 		### If the point is in the zone and closer than all earlier points in the zone, save it
-                        # Comment away zoneangles[i][1] = arg to use midpoitn angles instead
-                elif (theta_min <= arg < theta_min+15 and (zoneangles[0][0]>dist)): #Leftmost
-                        zoneangles[0][0] = dist
-                        zoneangles[0][1] = arg
-                elif (theta_min+15 <= arg < theta_min+30 and (zoneangles[1][0]>dist)): 
-                        zoneangles[1][0] = dist
-                        zoneangles[1][1] = arg
-                elif (theta_min+30 <= arg < theta_min+45 and (zoneangles[2][0]>dist)):
-                        zoneangles[2][0] = dist
-                        zoneangles[2][1] = arg
-                elif ((theta_min+45 <= arg) or (arg < theta_max-90) and (zoneangles[3][0]>dist)):
-                        zoneangles[3][0] = dist
-                        zoneangles[3][1] = arg
-                elif (theta_max-90 <= arg < theta_max-75 and (zoneangles[4][0]>dist)):
-                        zoneangles[4][0] = dist
-                        zoneangles[4][1] = arg
-                elif (theta_max-75 <= arg < theta_max-60 and (zoneangles[5][0]>dist)):
-                        zoneangles[5][0] = dist
-                        zoneangles[5][1] = arg
-                elif (theta_max-60 <= arg < theta_max-45 and (zoneangles[6][0]>dist)):
-                        zoneangles[6][0] = dist
-                        zoneangles[6][1] = arg
-                elif (theta_max-45 <= arg < theta_max-30 and (zoneangles[7][0]>dist)): 
-                        zoneangles[7][0] = dist
-                        zoneangles[7][1] = arg
-                elif (theta_max-30 <= arg < theta_max-15 and (zoneangles[8][0]>dist)): 
-                        zoneangles[8][0] = dist
-                        zoneangles[8][1] = arg
-                elif (theta_max-15 <= arg <= theta_max and (zoneangles[9][0]>dist)): #Rightmost
-                        zoneangles[9][0] = dist
-                        zoneangles[9][1] = arg
+
+                elif (theta_max-15 <= arg <= theta_max): #Rightmost
+                        if (zoneangles[9][0] > dist):
+                                zoneangles[9][0] = dist
+                        zoneangles[9][3] +=dist
+                        zoneangles[9][4] +=1
+                
+                elif (theta_min <= arg < theta_min+15): #Leftmost
+                        if (zoneangles[0][0] > dist):
+                                zoneangles[0][0] = dist
+                        zoneangles[0][3] +=dist
+                        zoneangles[0][4] +=1
+                        #zoneangles[0][1] = arg
+                
+                elif (theta_min+15 <= arg < theta_min+30):
+                        if (zoneangles[1][0] > dist):
+                                zoneangles[1][0] = dist
+                        zoneangles[1][3] +=dist
+                        zoneangles[1][4] +=1
+                        #zoneangles[1][1] = arg
+                elif (theta_min+30 <= arg < theta_min+45):
+                        if (zoneangles[2][0] > dist):
+                                zoneangles[2][0] = dist
+                        zoneangles[2][3] +=dist
+                        zoneangles[2][4] +=1
+                        #zoneangles[2][1] = arg
+                elif ((theta_min+45 <= arg) or (arg < theta_max-90)):
+                        if (zoneangles[3][0] > dist):
+                                zoneangles[3][0] = dist
+                        zoneangles[3][3] +=dist
+                        zoneangles[3][4] +=1
+                        #zoneangles[3][1] = arg
+                elif (theta_max-90 <= arg < theta_max-75):
+                        if (zoneangles[4][0] > dist):
+                                zoneangles[4][0] = dist
+                        zoneangles[4][3] +=dist
+                        zoneangles[4][4] +=1
+                        #zoneangles[4][1] = arg
+                elif (theta_max-75 <= arg < theta_max-60):
+                        if (zoneangles[5][0] > dist):
+                                zoneangles[5][0] = dist
+                        zoneangles[5][3] +=dist
+                        zoneangles[5][4] +=1
+                        #zoneangles[5][1] = arg
+                elif (theta_max-60 <= arg < theta_max-45):
+                        if (zoneangles[6][0] > dist):
+                                zoneangles[6][0] = dist
+                        zoneangles[6][3] +=dist
+                        zoneangles[6][4] +=1
+                        #zoneangles[6][1] = arg
+                elif (theta_max-45 <= arg < theta_max-30):
+                        if (zoneangles[7][0] > dist):
+                                zoneangles[7][0] = dist
+                        zoneangles[7][3] +=dist
+                        zoneangles[7][4] +=1
+                        #zoneangles[7][1] = arg
+                elif (theta_max-30 <= arg < theta_max-15):
+                        if (zoneangles[8][0] > dist):
+                                zoneangles[8][0] = dist
+                        zoneangles[8][3] +=dist
+                        zoneangles[8][4] +=1
+                        
+                        #zoneangles[8][1] = arg
+               
+                        #zoneangles[9][1] = arg
+
+                
 	#### Turns away from a wall if it is too close
+
+        #### Får den att stanna en stund då och då
+                        
+        #if (whenToWait > 2):
+        #        whenToWait += 1
+        #        if (whenToWait >= 4):
+        #                whenToWait = 0
+        #       return (-1, angular)
+        #whenToWait += 1
+
+       
+        for lindex in range(0,10):
+                if (zoneangles[lindex][0] != 5096 and zoneangles[lindex][4] != 0):
+                        zoneangles[lindex][3] = int(zoneangles[lindex][3]/zoneangles[lindex][4]) #Creates average for each segment
         for kindex in range(10):
                 if ((illegal_right_angle < zoneangles[kindex][1] < illegal_left_angle) or  (illegal_right_angle < zoneangles[kindex][1]+360 < illegal_left_angle)):
                         zoneangles[kindex][2] = 1
-        if (zoneangles[0][0] > r and zoneangles[0][0] !=5096 and zoneangles[1][0] > int(zoneangles[0][0]*3/8) and ((zoneangles[0][2] + zoneangles[1][2]) == 0)):#int(zoneangles[0][0]/2)):
-                r = zoneangles[0][0]
+        if (zoneangles[0][3]*0.1 + zoneangles[0][0] > r and zoneangles[1][0] > int(zoneangles[0][0]*3/8) and ((zoneangles[0][2] + zoneangles[1][2]) == 0)):#int(zoneangles[0][0]/2)):
+                r = zoneangles[0][3]*averageweight +zoneangles[0][0]  
                 theta = zoneangles[0][1]
-        if (zoneangles[9][0] > r and zoneangles[9][0] !=5096 and zoneangles[8][0] > int(zoneangles[9][0]*3/8) and ((zoneangles[8][2] + zoneangles[9][2]) == 0)):
-                r = zoneangles[9][0]
+        if (zoneangles[9][3]*averageweight + zoneangles[9][0] > r and zoneangles[8][0] > int(zoneangles[9][0]*3/8) and ((zoneangles[8][2] + zoneangles[9][2]) == 0)):
+                r = zoneangles[9][3]*0.1 + zoneangles[9][0]
                 theta = zoneangles[9][1]
         for jindex in range(1,9):
-                if (zoneangles[jindex][0]>r and zoneangles[jindex][0] !=5096 and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]*3/8) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]*3/8) and ((zoneangles[jindex-1][2] + zoneangles[jindex][2] + zoneangles[jindex+1][2]) == 0)):
-                        r = zoneangles[jindex][0]
+                if (zoneangles[jindex][3]*averageweight + zoneangles[jindex][0] > r and zoneangles[jindex-1][0] > int(zoneangles[jindex][0]*3/8) and zoneangles[jindex+1][0] > int(zoneangles[jindex][0]*3/8) and ((zoneangles[jindex-1][2] + zoneangles[jindex][2] + zoneangles[jindex+1][2]) == 0)):
+                        r = zoneangles[jindex][3]*averageweight + zoneangles[jindex][0]
                         theta = zoneangles[jindex][1]
         if ((1 < zoneangles[4][0] < frontStopThresh) or (1 < zoneangles[5][0] < frontStopThresh)):
                 #Greater than 1 to avoid the "1=infinity" problem with the LidarLite v3
@@ -154,14 +212,9 @@ def get_target(lista):
 def bt_init():
         global bd_addr
         global port
-        global sock
         while True:
                 try:
-                        sock.close()
-                except:
-                        pass
-                try:
-                        sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
+                        #sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
                         sock.connect((bd_addr, port))
                         sock.settimeout(5.0)
                         print("Connection Acquired 2")
@@ -169,7 +222,7 @@ def bt_init():
                 except Exception as e:
                         LIDARpub.send_string("%s %i %i" % ("LADAR" ,180 ,180 ))
                         print(e)
-                        time.sleep(0.5)
+                        time.sleep(1)
                         continue
         
 def get_command(state):
@@ -214,9 +267,11 @@ def main():
         global diff
         global theta_min
         global theta_max
+        global whenToWait
+        global angular
         dist=0
         angle=0
-        Auto_bool = False #ENDAST FÖR TEST, ÄNDRA TILL FALSE
+        Auto_bool = True #ENDAST FÖR TEST, ÄNDRA TILL FALSE
         while True:
                 data = sock.recv(1024).decode("utf-8") # Read Bluetooth buffer for Lidar data
                 if data:
@@ -234,7 +289,7 @@ def main():
                                         LIDARpub.send_string("%s %i %i" % ("LADAR", angle, dist))
                                 lista = lista[lista.find("\n")+1:] 
                                 if ((170 < angle < 190) and (i > 20)):
-                                        Auto_bool = get_command(Auto_bool)
+                                        #Auto_bool = get_command(Auto_bool)
                                         #print(Auto_bool)
                                         if Auto_bool == False:
                                                 i = 0
@@ -242,6 +297,7 @@ def main():
                                                 #print("loop")
                                         else:
                                                 (targetDist, angular) = get_target(lista2)
+                                                if (targetDist != -1):
                                                 ###   Hastighet   ###
                                                 #if (targetDist > stopThresh):
                                                  #       spi.xfer2([138],250000,1,8)
@@ -249,17 +305,17 @@ def main():
                                                 #        spi.xfer2([128],250000,1,8)
                                                 #        ###STANNA BILJÄVELN###
                                                 #Ovan låter hastigheten sänkas ju mer man svänger och ju nämare hindret är
-                                                if (angular > theta_min):
-                                                        angular -= theta_min
-                                                else:
-                                                        angular += (150-theta_max)
-                                                angular = 150 - angular
-                                                if (angular > 130):
-                                                        angular = 100
-                                                elif (angular < 20):
-                                                        angular = 6
-                                                else:
-                                                        angular = int(angular*47/55-11)
+                                                        if (angular > theta_min):
+                                                                angular -= theta_min
+                                                        else:
+                                                                angular += (150-theta_max)
+                                                        angular = 150 - angular
+                                                        if (angular > 130):
+                                                                angular = 100
+                                                        elif (angular < 20):
+                                                                angular = 6
+                                                        else:
+                                                                angular = int(angular*47/55-11)
                                                 #if (targetDist < 70):                   #avstånd mindre än 70  =>  hjulens vinklar spelar mindre roll
                                                         #speed = int(startSpeed + 20/(1 + (speed - startSpeed)/1) * (1 - math.pow(abs(53-angular)/60, closeConst) *min(targetDist,500)/500))*controlConst)
                                                 #else:
