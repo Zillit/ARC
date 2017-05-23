@@ -10,10 +10,10 @@ context = zmq.Context()
 
 USERreq = context.socket(zmq.ROUTER)
 USERrep= context.socket(zmq.DEALER)
-zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5555","arc@nhkim91.ddns.net:4444",None, password="stavarett")
+zmq.ssh.tunnel_connection(USERrep,"tcp://localhost:5555","pi@nhkim91.ddns.net:4444",None, password="")
 USERreq.bind("tcp://*:2550")
 ARCsub = context.socket(zmq.SUB)
-zmq.ssh.tunnel_connection(ARCsub,"tcp://localhost:4555","arc@nhkim91.ddns.net:4444",None,password="stavarett")
+zmq.ssh.tunnel_connection(ARCsub,"tcp://localhost:4555","pi@nhkim91.ddns.net:4444",None,password="")
 ARCpub = context.socket(zmq.PUB)
 ARCpub.bind("tcp://*:2555")
 
@@ -27,8 +27,11 @@ def rep_req_proxy_thread(threadName,delay):
     print("Started thread %s" % threadName)
     sleep(delay)
     zmq.proxy(USERreq,USERrep)
+    ARCsub.close()
+    ARCpub.close()
     USERreq.close()
     USERrep.close()
+    context.term()
 
 def main():
     thread.start_new_thread(rep_req_proxy_thread,("rep_req_proxy",1))
