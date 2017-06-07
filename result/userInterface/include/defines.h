@@ -1,3 +1,4 @@
+//Last updated 17/06/07 by Christian Jonsson
 #ifndef DEFINES_H
 #define DEFINES_H
 #include <string>

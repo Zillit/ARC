@@ -1,3 +1,4 @@
+#//Last updated 17/06/07 by Christian Jonsson
 commondir = ../common
 incdir = ../include
 

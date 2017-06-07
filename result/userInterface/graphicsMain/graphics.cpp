@@ -1,3 +1,4 @@
+//Last updated 17/06/07 by Christian Jonsson
 // C++ version!
 // g++ graphics.cpp ../../common/*.c ../../common/Linux/*.c -lGL -o mainGraphics -I../../common -I../../common/Linux -DGL_GLEXT_PROTOTYPES  -lXt -lX11 -lm -fpermissive
 //note, add -fpermissive in order to allow implicid conversion from void* to whatever, like in C programming
